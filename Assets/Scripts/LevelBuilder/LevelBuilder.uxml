@@ -1,0 +1,26 @@
+<UXML xmlns="UnityEngine.UIElements" xmlns:uie="UnityEditor.UIElements" editor-extension-mode="False">
+    <TabView name="tabLevelBuilder" tabindex="1">
+        <Tab label="Setup" enabled="true">
+            <Vector3Field label="Origin:" name="v3OriginLocation" />
+            <TextField label="Origin name:" placeholder-text="Level" name="txtOriginName" />
+            <SliderInt label="DimensionX:" value="10" high-value="100" low-value="1" name="sldrDimensionX" show-input-field="true" />
+            <SliderInt label="DimensionY:" value="10" high-value="100" low-value="1" name="sldrDimensionY" show-input-field="true" />
+            <Slider label="Tile size:" value="1" high-value="2" low-value="0.1" name="sldrTileSize" show-input-field="true" />
+            <Button text="Select tiles folder ..." name="btnSelectTilesFolder" parse-escape-sequences="true" />
+            <TextField placeholder-text="filler text" name="txtTilesFolder" />
+            <VisualElement style="flex-grow: 1; flex-direction: row;">
+                <Label text="Default tile:" style="width: 150px;" />
+                <VisualElement name="veDefaultTile" style="flex-grow: 1; height: 100px; width: 100px; background-image: none; min-width: 100px; min-height: 100px; max-height: 100px; max-width: 100px;" />
+            </VisualElement>
+            <Button text="Select props folder ..." name="btnSelectPropsFolder" />
+            <TextField label="Text Field" placeholder-text="filler text" name="txtPropsFolder" />
+            <Button text="Create Build Area" selectable="true" name="btnCreate" />
+        </Tab>
+        <Tab label="Tiles">
+            <ListView name="lvTiles" fixed-item-height="100" />
+        </Tab>
+        <Tab label="Props">
+            <ListView name="lvProps" fixed-item-height="100" show-foldout-header="false" />
+        </Tab>
+    </TabView>
+</UXML>
