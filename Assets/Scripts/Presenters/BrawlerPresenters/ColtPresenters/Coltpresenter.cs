@@ -1,6 +1,8 @@
 using Assets.Scripts.Models;
 using Assets.Scripts.Models.ColtModels;
 using Assets.Scripts.Presenters.ColtPresenters;
+using Assets.Scripts.Strategies.Attack;
+using Assets.Scripts.Strategies.Movement;
 using System.ComponentModel;
 using UnityEngine;
 
@@ -10,11 +12,23 @@ namespace Assets.Scripts.Presenters
     {
         [Header("Colt Settings")]
         [SerializeField] private GameObject coltBulletPrefab;
+        [SerializeField] private float coltRotationSpeed = 180f;
+        [SerializeField] private float automatedAttackInterval = 1.0f;
 
         protected override void Awake()
         {
             base.Awake();
             Model = new Colt();
+        }
+
+        protected override IMovementStrategy CreateNonLocalMovementStrategy()
+        {
+            return new RotationalMovementStrategy(coltRotationSpeed);
+        }
+
+        protected override IAttackStrategy CreateNonLocalAttackStrategy()
+        {
+            return new AutomatedAttackStrategy(automatedAttackInterval);
         }
 
         protected override void ModelSetInitialization(Brawler previousModel)
@@ -38,18 +52,15 @@ namespace Assets.Scripts.Presenters
         {
             if (coltBulletPrefab != null)
             {
-                // SPAWN BULLET IN FRONT OF COLT
                 Vector3 spawnPosition = transform.position + transform.forward * 1.5f;
                 GameObject bulletGO = Instantiate(coltBulletPrefab, spawnPosition, transform.rotation);
 
-                // SET BULLET MODEL AND INITIALIZE
                 ColtBulletPresenter bulletPresenter = bulletGO.GetComponent<ColtBulletPresenter>();
                 if (bulletPresenter != null)
                 {
                     bulletPresenter.Model = e.Bullet;
-
-                    // Initialize the bullet model with position and direction
-                    bulletPresenter.Model.Initialize(spawnPosition, transform.forward);
+                    // Pass the Colt model as the owner
+                    bulletPresenter.Model.Initialize(spawnPosition, transform.forward, Model);
                 }
             }
         }

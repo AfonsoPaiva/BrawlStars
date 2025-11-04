@@ -6,8 +6,8 @@ using System.Threading.Tasks;
 
 namespace Assets.Scripts.Models
 {
-    internal class PD3StarsGame : UnityModelBaseClass{
-
+    internal class PD3StarsGame : UnityModelBaseClass
+    {
 
     }
 }

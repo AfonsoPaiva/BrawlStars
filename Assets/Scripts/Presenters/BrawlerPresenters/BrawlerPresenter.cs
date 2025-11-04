@@ -1,6 +1,6 @@
 using Assets.Scripts.Models;
-using Assets.Scripts.Models.ColtModels;
-using JetBrains.Annotations;
+using Assets.Scripts.Strategies.Attack;
+using Assets.Scripts.Strategies.Movement;
 using PD3HealthBars;
 using System.ComponentModel;
 using UnityEngine;
@@ -18,94 +18,170 @@ namespace Assets.Scripts.Presenters
         [Header("Input")]
         [SerializeField] protected PlayerInput playerInput;
 
+        [Header("Control")]
+        [SerializeField] protected bool isLocalPlayer = false;
+
         [Header("Health Bar Settings")]
         [SerializeField] private VisualTreeAsset healthBarTemplate;
         [SerializeField] private UIDocument _hudDOcument;
         [SerializeField] private Transform healthBarAnchor;
 
         private PD3HealthBars.HealthBarPresenter _healthBarPresenter;
+        private IMovementStrategy _movementStrategy;
+        private IAttackStrategy _attackStrategy;
 
-        protected Vector2 _moveDirection;
+        public float MoveSpeed => moveSpeed;
+        public float RotationSpeed => rotationSpeed;
+        public bool IsLocalPlayer => isLocalPlayer;
 
+        protected override void Awake() 
+        {
+            base.Awake();
+        }
 
-        protected override void Awake() {   }
+        protected override void ModelSetInitialization(Brawler previousModel)
+        {
+            base.ModelSetInitialization(previousModel);
+
+            // Unsubscribe from previous model
+            if (previousModel != null)
+            {
+                previousModel.Died -= OnBrawlerDied;
+            }
+
+            // Subscribe to new model
+            if (Model != null)
+            {
+                Model.Died += OnBrawlerDied;
+            }
+        }
+
         protected void Start()
         {
             ADDHB(_hudDOcument, healthBarTemplate);
-            if (playerInput != null)
+            InitializeStrategies();
+            
+            // Subscribe to death event if model is already set
+            if (Model != null)
             {
-                playerInput.actions["Move"].performed += Move_performed;
-                playerInput.actions["Move"].canceled += Move_canceled;
-                playerInput.actions["Attack"].performed += PrimaryAttack_performed;
+                Model.Died += OnBrawlerDied;
             }
+        }
+
+        protected virtual void InitializeStrategies()
+        {
+            if (isLocalPlayer && playerInput != null)
+            {
+                // Provide strategies from outside - using factory pattern
+                SetMovementStrategy(CreateLocalMovementStrategy());
+                SetAttackStrategy(CreateLocalAttackStrategy());
+            }
+            else
+            {
+                // Non-local players use externally defined strategies
+                SetMovementStrategy(CreateNonLocalMovementStrategy());
+                SetAttackStrategy(CreateNonLocalAttackStrategy());
+            }
+        }
+
+        protected virtual IMovementStrategy CreateLocalMovementStrategy()
+        {
+            return new InputSystemMovementStrategy(playerInput);
+        }
+
+
+        protected virtual IAttackStrategy CreateLocalAttackStrategy()
+        {
+            return new InputSystemAttackStrategy(playerInput);
+        }
+
+        protected virtual IMovementStrategy CreateNonLocalMovementStrategy()
+        {
+            return new NoMovementStrategy();
+        }
+
+        protected virtual IAttackStrategy CreateNonLocalAttackStrategy()
+        {
+            return null;
+        }
+
+        public void SetMovementStrategy(IMovementStrategy strategy)
+        {
+            _movementStrategy = strategy;
+        }
+
+        public void SetAttackStrategy(IAttackStrategy strategy)
+        {
+            _attackStrategy = strategy;
         }
 
         public void ADDHB(UIDocument hudDocument, VisualTreeAsset HBxml)
         {
-           _hudDOcument = hudDocument;
+            _hudDOcument = hudDocument;
             VisualElement cloneRoot = HBxml.CloneTree();
             Transform hbTransform = healthBarAnchor;
             if (hbTransform != null)
             {
                 _healthBarPresenter = new PD3HealthBars.HealthBarPresenter(Model, hbTransform, cloneRoot, _hudDOcument);
             }
+        }
 
+        private void OnBrawlerDied(object sender, System.EventArgs e)
+        {
+            Debug.Log($"{Model.GetType().Name} died! Destroying GameObject.");
+            Destroy(gameObject);
         }
 
         protected override void OnDestroy()
         {
-            if (playerInput != null)
+            // Unsubscribe from model events
+            if (Model != null)
             {
-                playerInput.actions["Move"].performed -= Move_performed;
-                playerInput.actions["Move"].canceled -= Move_canceled;
-                playerInput.actions["Attack"].performed -= PrimaryAttack_performed;
+                Model.Died -= OnBrawlerDied;
+            }
+
+            // Cleanup strategy subscriptions
+            if (_movementStrategy is InputSystemMovementStrategy inputMovement)
+            {
+                inputMovement.Cleanup();
+            }
+
+            if (_attackStrategy is InputSystemAttackStrategy inputAttack)
+            {
+                inputAttack.Cleanup();
             }
 
             base.OnDestroy();
-        }
-
-        protected virtual void Move_performed(InputAction.CallbackContext context)
-        {
-            _moveDirection = context.ReadValue<Vector2>();
-        }
-
-        protected virtual void Move_canceled(InputAction.CallbackContext context)
-        {
-            _moveDirection = Vector2.zero;
-        }
-
-        protected virtual void PrimaryAttack_performed(InputAction.CallbackContext context)
-        {
-            Model?.PARequested();
         }
 
         protected override void Update()
         {
             base.Update();
             HandleMovement();
-            Debug.Log($"{Model.GetType().Name} Position: {transform.position}");
-            Debug.Log($"{Model.GetType().Name} MoveDirection: {_moveDirection}");
-
+            HandleAttack();
         }
 
         private void LateUpdate()
         {
-            if (playerInput != null) 
-                _healthBarPresenter.UpdatePosition();
-        
+            _healthBarPresenter?.UpdatePosition();
         }
 
         protected virtual void HandleMovement()
         {
-            if (_moveDirection.sqrMagnitude > 0.01f)
-            {
-                // Move
-                Vector3 movement = new Vector3(_moveDirection.x, 0, _moveDirection.y);
-                transform.position += movement * moveSpeed * Time.deltaTime;
+            _movementStrategy?.Execute(transform, moveSpeed, rotationSpeed, Time.deltaTime);
+        }
 
-                // Rotate
-                Quaternion targetRotation = Quaternion.LookRotation(movement);
-                transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * Time.deltaTime);
+        protected virtual void HandleAttack()
+        {
+            if (_attackStrategy != null && _attackStrategy.CanExecute())
+            {
+                Model?.PARequested();
+                _attackStrategy.Execute(Time.deltaTime);
+
+                if (_attackStrategy is AutomatedAttackStrategy automatedAttack)
+                {
+                    automatedAttack.ResetCooldown();
+                }
             }
         }
 

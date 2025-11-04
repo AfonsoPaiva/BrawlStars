@@ -26,12 +26,19 @@ namespace Assets.Scripts.Models
                     _health = Mathf.Clamp(value, 0, MAXHEALTH);
                     OnPropertyChanged(nameof(Health));
                     HealthChanged?.Invoke(this, EventArgs.Empty);
+                    
+                    // Check for death
+                    if (_health <= 0)
+                    {
+                        OnDeath();
+                    }
                 }
             }
         }
 
 
         public event EventHandler HealthChanged;
+        public event EventHandler Died;
         public float HealthProgress => Mathf.Clamp01(_health / MAXHEALTH);
 
         // Health bar presenter field
@@ -51,6 +58,12 @@ namespace Assets.Scripts.Models
         public void TakeDamage(float damage)
         {
             Health -= damage;
+        }
+
+        // Death notification method
+        protected virtual void OnDeath()
+        {
+            Died?.Invoke(this, EventArgs.Empty);
         }
 
         // Override FixedUpdate to delegate to FSM
