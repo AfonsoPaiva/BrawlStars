@@ -49,7 +49,7 @@ namespace Assets.Scripts.Models.ColtModels
             ColtBullet bullet = new ColtBullet();
             ColtFired?.Invoke(this, new ColtBulletEventArgs(bullet));
 
-            // Reset attack flag (in real implementation, would be controlled by attack FSM)
+            // Reset attack flag 
             _isAttacking = false;
         }
     }

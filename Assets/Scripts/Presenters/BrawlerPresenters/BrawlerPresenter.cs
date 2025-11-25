@@ -15,12 +15,6 @@ namespace Assets.Scripts.Presenters
         [SerializeField] protected float moveSpeed = 5f;
         [SerializeField] protected float rotationSpeed = 10f;
 
-        [Header("Input")]
-        [SerializeField] protected PlayerInput playerInput;
-
-        [Header("Control")]
-        [SerializeField] protected bool isLocalPlayer = false;
-
         [Header("Health Bar Settings")]
         [SerializeField] private VisualTreeAsset healthBarTemplate;
         [SerializeField] private UIDocument _hudDOcument;
@@ -28,15 +22,27 @@ namespace Assets.Scripts.Presenters
 
         private PD3HealthBars.HealthBarPresenter _healthBarPresenter;
         private IMovementStrategy _movementStrategy;
-        private IAttackStrategy _attackStrategy;
+        private IAttackStrategy _attack_strategy;
+        private PlayerInput _playerInput;
 
         public float MoveSpeed => moveSpeed;
         public float RotationSpeed => rotationSpeed;
-        public bool IsLocalPlayer => isLocalPlayer;
 
-        protected override void Awake() 
+        // Property to check if this is the local player based on tag
+        public bool IsLocalPlayer
+        {
+            get => gameObject.CompareTag("Player");
+        }
+
+        protected override void Awake()
         {
             base.Awake();
+
+            // Try to get PlayerInput component on awake
+            if (_playerInput == null)
+            {
+                _playerInput = GetComponent<PlayerInput>();
+            }
         }
 
         protected override void ModelSetInitialization(Brawler previousModel)
@@ -59,8 +65,10 @@ namespace Assets.Scripts.Presenters
         protected void Start()
         {
             ADDHB(_hudDOcument, healthBarTemplate);
+
+            // Initialize strategies
             InitializeStrategies();
-            
+
             // Subscribe to death event if model is already set
             if (Model != null)
             {
@@ -68,31 +76,37 @@ namespace Assets.Scripts.Presenters
             }
         }
 
+        // Public method to force initialize strategies (called by game presenter)
+        public void ForceInitializeStrategies()
+        {
+            InitializeStrategies();
+        }
+
         protected virtual void InitializeStrategies()
         {
-            if (isLocalPlayer && playerInput != null)
+            if (IsLocalPlayer)
             {
-                // Provide strategies from outside - using factory pattern
-                SetMovementStrategy(CreateLocalMovementStrategy());
-                SetAttackStrategy(CreateLocalAttackStrategy());
+                // For local player: use input-based strategies
+                if (_playerInput != null && _playerInput.enabled)
+                {
+                    SetMovementStrategy(new InputSystemMovementStrategy(_playerInput));
+                    SetAttackStrategy(new InputSystemAttackStrategy(_playerInput));
+                    Debug.Log($"Initialized local player strategies for {gameObject.name}");
+                }
+                else
+                {
+                    Debug.LogWarning($"{gameObject.name}: Object has Player tag but PlayerInput is missing or disabled. Using non-local strategies.");
+                    SetMovementStrategy(CreateNonLocalMovementStrategy());
+                    SetAttackStrategy(CreateNonLocalAttackStrategy());
+                }
             }
             else
             {
-                // Non-local players use externally defined strategies
+                // For NPCs: use automated strategies
                 SetMovementStrategy(CreateNonLocalMovementStrategy());
                 SetAttackStrategy(CreateNonLocalAttackStrategy());
+                Debug.Log($"Initialized NPC strategies for {gameObject.name}");
             }
-        }
-
-        protected virtual IMovementStrategy CreateLocalMovementStrategy()
-        {
-            return new InputSystemMovementStrategy(playerInput);
-        }
-
-
-        protected virtual IAttackStrategy CreateLocalAttackStrategy()
-        {
-            return new InputSystemAttackStrategy(playerInput);
         }
 
         protected virtual IMovementStrategy CreateNonLocalMovementStrategy()
@@ -112,7 +126,14 @@ namespace Assets.Scripts.Presenters
 
         public void SetAttackStrategy(IAttackStrategy strategy)
         {
-            _attackStrategy = strategy;
+            _attack_strategy = strategy;
+        }
+
+        // Method to set PlayerInput externally (if needed)
+        public void SetPlayerInput(PlayerInput playerInput)
+        {
+            _playerInput = playerInput;
+            InitializeStrategies();
         }
 
         public void ADDHB(UIDocument hudDocument, VisualTreeAsset HBxml)
@@ -146,7 +167,7 @@ namespace Assets.Scripts.Presenters
                 inputMovement.Cleanup();
             }
 
-            if (_attackStrategy is InputSystemAttackStrategy inputAttack)
+            if (_attack_strategy is InputSystemAttackStrategy inputAttack)
             {
                 inputAttack.Cleanup();
             }
@@ -173,15 +194,10 @@ namespace Assets.Scripts.Presenters
 
         protected virtual void HandleAttack()
         {
-            if (_attackStrategy != null && _attackStrategy.CanExecute())
+            if (_attack_strategy != null && _attack_strategy.CanExecute())
             {
                 Model?.PARequested();
-                _attackStrategy.Execute(Time.deltaTime);
-
-                if (_attackStrategy is AutomatedAttackStrategy automatedAttack)
-                {
-                    automatedAttack.ResetCooldown();
-                }
+                _attack_strategy.Execute(Time.deltaTime);
             }
         }
 

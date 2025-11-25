@@ -15,10 +15,17 @@ namespace Assets.Scripts.Presenters
         [SerializeField] private float coltRotationSpeed = 180f;
         [SerializeField] private float automatedAttackInterval = 1.0f;
 
+        public float ColtRotationSpeed => coltRotationSpeed;
+        public float AutomatedAttackInterval => automatedAttackInterval;
+
         protected override void Awake()
         {
             base.Awake();
-            Model = new Colt();
+            Colt coltModel = new Colt();
+            coltModel.ColtFired += OnColtFired;
+            
+            // Now set the model
+            Model = coltModel;
         }
 
         protected override IMovementStrategy CreateNonLocalMovementStrategy()
@@ -41,11 +48,22 @@ namespace Assets.Scripts.Presenters
                 previousColt.ColtFired -= OnColtFired;
             }
 
-            // Subscribe to new Colt
-            if (Model is Colt colt)
+            // Subscribe to new Colt (if model was changed after initialization)
+            if (Model is Colt colt && previousModel != null)
             {
                 colt.ColtFired += OnColtFired;
             }
+        }
+
+        protected override void OnDestroy()
+        {
+            // Unsubscribe when destroyed
+            if (Model is Colt colt)
+            {
+                colt.ColtFired -= OnColtFired;
+            }
+            
+            base.OnDestroy();
         }
 
         private void OnColtFired(object sender, ColtBulletEventArgs e)

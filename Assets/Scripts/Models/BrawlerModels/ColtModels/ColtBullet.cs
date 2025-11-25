@@ -70,7 +70,7 @@ namespace Assets.Scripts.Models.ColtModels
             set => _owner = value;
         }
 
-        // Public method to initialize bullet (respects encapsulation)
+        //  initialize bullet 
         public void Initialize(Vector3 startPosition, Vector3 direction, Brawler owner = null)
         {
             Position = startPosition;

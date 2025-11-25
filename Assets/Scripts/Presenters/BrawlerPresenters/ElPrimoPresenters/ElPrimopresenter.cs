@@ -12,6 +12,9 @@ namespace Assets.Scripts.Presenters
         [SerializeField] private float elPrimoRotationSpeed = 180f;
         [SerializeField] private float automatedAttackInterval = 1.0f;
 
+        public float ElPrimoRotationSpeed => elPrimoRotationSpeed;
+        public float AutomatedAttackInterval => automatedAttackInterval;
+
         protected override void Awake()
         {
             base.Awake();

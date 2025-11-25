@@ -6,6 +6,9 @@ using System.ComponentModel;
 using UnityEngine;
 using System.Collections;
 using Assets.Scripts.Models.ElPrimoModels;
+using UnityEngine.InputSystem;
+using Assets.Scripts.Strategies.Attack;
+using Assets.Scripts.Strategies.Movement;
 
 namespace Assets.Scripts.Presenters
 {
@@ -21,12 +24,16 @@ namespace Assets.Scripts.Presenters
         [SerializeField] private Transform coltSpawnPoint;
         [SerializeField] private Transform elPrimoSpawnPoint;
 
+        [Header("Existing Scene Player")]
+        [SerializeField] private GameObject existingColtPlayer; 
+
         private float _currentSpawnDelay;
         private float _maxSpawnDelay = 3f;
-        private int _maxSpawnCounter = 2; 
+        private int _maxSpawnCounter = 2;
         private int _currentSpawnCounter = 0;
 
         private List<GameObject> brawlerInstances = new List<GameObject>();
+        private bool _hasConfiguredLocalPlayer = false;
 
         protected override void Awake()
         {
@@ -37,23 +44,49 @@ namespace Assets.Scripts.Presenters
                 return;
             }
             Instance = this;
+            ConfigureExistingScenePlayer();
         }
 
-        private void OnDestroy()
+        private void ConfigureExistingScenePlayer()
+        {
+            if (existingColtPlayer != null && !_hasConfiguredLocalPlayer)
+            {
+                var presenter = existingColtPlayer.GetComponent<BrawlerPresenter>();
+                if (presenter != null)
+                {
+                    presenter.Model = new Colt();
+                    existingColtPlayer.tag = "Player";
+                    var playerInput = existingColtPlayer.GetComponent<PlayerInput>();
+                    if (playerInput != null)
+                    {
+                        playerInput.enabled = true;
+                        playerInput.ActivateInput();
+                    }
+
+                    // Initialize strategies
+                    presenter.ForceInitializeStrategies();
+                    _hasConfiguredLocalPlayer = true;
+
+                    Debug.Log("Configured existing scene Colt as local player");
+                }
+            }
+        }
+
+        protected override void OnDestroy()
         {
             if (Instance == this)
             {
                 Instance = null;
             }
+            base.OnDestroy();
         }
 
-        private void FixedUpdate()
+        protected override void FixedUpdate()
         {
+            base.FixedUpdate();
             if (Instance != null)
             {
-                {
-                    SpawnBrawlerNetworkSim();
-                }
+                SpawnBrawlerNetworkSim();
             }
         }
 
@@ -65,19 +98,25 @@ namespace Assets.Scripts.Presenters
             {
                 if (_currentSpawnCounter % 2 == 0)
                 {
-                    AddBrawler(new Colt());
+                    AddBrawler(new Colt(), false); 
                 }
                 else
                 {
-                    AddBrawler(new ElPrimo());
+                    AddBrawler(new ElPrimo(), false); 
                 }
                 _currentSpawnDelay -= _maxSpawnDelay;
                 _currentSpawnCounter++;
             }
         }
 
-        public void AddBrawler(Brawler brawlerModel)
+        public void AddBrawler(Brawler brawlerModel, bool isLocalPlayer = false)
         {
+            if (isLocalPlayer && _hasConfiguredLocalPlayer)
+            {
+                Debug.LogWarning("Local player already exists in scene. Not spawning another one.");
+                return;
+            }
+
             GameObject prefab = null;
             Transform spawnPoint = null;
 
@@ -95,22 +134,34 @@ namespace Assets.Scripts.Presenters
             if (prefab != null && spawnPoint != null)
             {
                 var instance = Instantiate(prefab, spawnPoint.position, spawnPoint.rotation);
+
+                // Configure as NPC local player already exists in scenee
+                instance.tag = "Untagged";
+
+                // Disable PlayerInput for NPCs
+                var instancePlayerInput = instance.GetComponent<PlayerInput>();
+                if (instancePlayerInput != null)
+                {
+                    instancePlayerInput.enabled = false;
+                }
+
                 var presenter = instance.GetComponent<BrawlerPresenter>();
                 if (presenter != null)
                 {
                     presenter.Model = brawlerModel;
-                    
-                    // Only the first brawler is the local player
-                    // Set isLocalPlayer in the Unity Inspector or programmatically here
-                    // Note: You need to make isLocalPlayer publicly settable
+
+                    presenter.ForceInitializeStrategies();
                 }
+
                 brawlerInstances.Add(instance);
+
+                Debug.Log($"Spawned {brawlerModel.GetType().Name} as NPC");
             }
         }
 
         protected override void Model_PropertyChanged(object sender, PropertyChangedEventArgs e)
         {
-            
+
         }
     }
 }
