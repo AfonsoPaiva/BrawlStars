@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Assets.Scripts.Strategies.Damage;
+using System;
 using UnityEngine;
 
 namespace Assets.Scripts.Models.ColtModels
@@ -18,6 +19,11 @@ namespace Assets.Scripts.Models.ColtModels
         private float _speed;
         private float _damage;
         private Brawler _owner;
+        private IDamageStrategy _damageStrategy;
+
+
+        //this is for the pool implementation
+        public bool IsActive { get; internal set; } = false;
 
         public float TimeToLive
         {
@@ -70,6 +76,12 @@ namespace Assets.Scripts.Models.ColtModels
             set => _owner = value;
         }
 
+        public IDamageStrategy DamageStrategy
+        {
+            get => _damageStrategy ?? (_damageStrategy = new StandardDamageStrategy());
+            set => _damageStrategy = value ?? new StandardDamageStrategy();
+        }
+
         //  initialize bullet 
         public void Initialize(Vector3 startPosition, Vector3 direction, Brawler owner = null)
         {
@@ -79,11 +91,45 @@ namespace Assets.Scripts.Models.ColtModels
             TimeToLive = TIME_TO_LIVE;
             Damage = BASE_DAMAGE;
             Owner = owner;
+            IsActive = true;
+            OnPropertyChanged(nameof(IsActive));
+        }
+
+        public void MarkExpiredByHit()
+        {
+            if (!IsActive)
+            {
+                return;
+            }
+
+            // Make inactive first to avoid re-entry from Update
+            IsActive = false;
+            Expired?.Invoke(this, EventArgs.Empty);
+        }
+
+        public void ResetForPool()
+        {
+            IsActive = false;
+            // this is for the presenters to know it's inactive
+            TimeToLive = 0f;
+            _position = Vector3.zero;
+            _direction = Vector3.zero;
+            Speed = 0f;
+            Damage = 0f;
+            Owner = null;
+            // Reset to default strategy when returning to pool
+            _damageStrategy = new StandardDamageStrategy();
+            OnPropertyChanged(nameof(IsActive));
         }
 
         public override void Update()
         {
             base.Update();
+
+            if (!IsActive)
+            {
+                return;
+            }
 
             if (TimeToLive > 0)
             {
@@ -94,8 +140,15 @@ namespace Assets.Scripts.Models.ColtModels
 
                 if (TimeToLive <= 0)
                 {
+                    // thus is to avoid re-entrancy issues
+                    IsActive = false;
                     Expired?.Invoke(this, EventArgs.Empty);
                 }
+            }
+            else
+            {
+                IsActive = false;
+                Expired?.Invoke(this, EventArgs.Empty);
             }
         }
     }

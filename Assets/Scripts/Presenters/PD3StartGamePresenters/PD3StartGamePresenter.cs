@@ -35,6 +35,13 @@ namespace Assets.Scripts.Presenters
         private List<GameObject> brawlerInstances = new List<GameObject>();
         private bool _hasConfiguredLocalPlayer = false;
 
+        // Helper enum to specify brawler type without creating model instance
+        public enum BrawlerType
+        {
+            Colt,
+            ElPrimo
+        }
+
         protected override void Awake()
         {
             base.Awake();
@@ -54,7 +61,6 @@ namespace Assets.Scripts.Presenters
                 var presenter = existingColtPlayer.GetComponent<BrawlerPresenter>();
                 if (presenter != null)
                 {
-                    presenter.Model = new Colt();
                     existingColtPlayer.tag = "Player";
                     var playerInput = existingColtPlayer.GetComponent<PlayerInput>();
                     if (playerInput != null)
@@ -98,18 +104,18 @@ namespace Assets.Scripts.Presenters
             {
                 if (_currentSpawnCounter % 2 == 0)
                 {
-                    AddBrawler(new Colt(), false); 
+                    AddBrawler(BrawlerType.Colt, false); 
                 }
                 else
                 {
-                    AddBrawler(new ElPrimo(), false); 
+                    AddBrawler(BrawlerType.ElPrimo, false); 
                 }
                 _currentSpawnDelay -= _maxSpawnDelay;
                 _currentSpawnCounter++;
             }
         }
 
-        public void AddBrawler(Brawler brawlerModel, bool isLocalPlayer = false)
+        public void AddBrawler(BrawlerType brawlerType, bool isLocalPlayer = false)
         {
             if (isLocalPlayer && _hasConfiguredLocalPlayer)
             {
@@ -120,22 +126,23 @@ namespace Assets.Scripts.Presenters
             GameObject prefab = null;
             Transform spawnPoint = null;
 
-            if (brawlerModel is Colt)
+            switch (brawlerType)
             {
-                prefab = coltPrefab;
-                spawnPoint = coltSpawnPoint;
-            }
-            else if (brawlerModel is ElPrimo)
-            {
-                prefab = elPrimoPrefab;
-                spawnPoint = elPrimoSpawnPoint;
+                case BrawlerType.Colt:
+                    prefab = coltPrefab;
+                    spawnPoint = coltSpawnPoint;
+                    break;
+                case BrawlerType.ElPrimo:
+                    prefab = elPrimoPrefab;
+                    spawnPoint = elPrimoSpawnPoint;
+                    break;
             }
 
             if (prefab != null && spawnPoint != null)
             {
                 var instance = Instantiate(prefab, spawnPoint.position, spawnPoint.rotation);
 
-                // Configure as NPC local player already exists in scenee
+                // Configure as NPC (local player already exists in scene)
                 instance.tag = "Untagged";
 
                 // Disable PlayerInput for NPCs
@@ -148,14 +155,15 @@ namespace Assets.Scripts.Presenters
                 var presenter = instance.GetComponent<BrawlerPresenter>();
                 if (presenter != null)
                 {
-                    presenter.Model = brawlerModel;
+                    // DON'T set Model - presenter already creates it in Awake()!
+                    // presenter.Model = brawlerModel; // ❌ REMOVED - This was creating duplicate!
 
                     presenter.ForceInitializeStrategies();
                 }
 
                 brawlerInstances.Add(instance);
 
-                Debug.Log($"Spawned {brawlerModel.GetType().Name} as NPC");
+                Debug.Log($"Spawned {brawlerType} as NPC");
             }
         }
 

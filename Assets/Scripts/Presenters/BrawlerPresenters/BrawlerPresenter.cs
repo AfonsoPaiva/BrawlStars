@@ -15,6 +15,9 @@ namespace Assets.Scripts.Presenters
         [SerializeField] protected float moveSpeed = 5f;
         [SerializeField] protected float rotationSpeed = 10f;
 
+        [Header("Attack Settings")]
+        [SerializeField] protected float attackInterval = 0.5f;
+
         [Header("Health Bar Settings")]
         [SerializeField] private VisualTreeAsset healthBarTemplate;
         [SerializeField] private UIDocument _hudDOcument;
@@ -27,6 +30,7 @@ namespace Assets.Scripts.Presenters
 
         public float MoveSpeed => moveSpeed;
         public float RotationSpeed => rotationSpeed;
+        public float AttackInterval => attackInterval;
 
         // Property to check if this is the local player based on tag
         public bool IsLocalPlayer
@@ -90,7 +94,7 @@ namespace Assets.Scripts.Presenters
                 if (_playerInput != null && _playerInput.enabled)
                 {
                     SetMovementStrategy(new InputSystemMovementStrategy(_playerInput));
-                    SetAttackStrategy(new InputSystemAttackStrategy(_playerInput));
+                    SetAttackStrategy(new InputSystemAttackStrategy(_playerInput, attackInterval));
                     Debug.Log($"Initialized local player strategies for {gameObject.name}");
                 }
                 else
@@ -194,6 +198,16 @@ namespace Assets.Scripts.Presenters
 
         protected virtual void HandleAttack()
         {
+            // Update cooldown for strategies that need it every frame
+            if (_attack_strategy is AutomatedAttackStrategy automatedStrategy)
+            {
+                automatedStrategy.UpdateCooldown(Time.deltaTime);
+            }
+            else if (_attack_strategy is InputSystemAttackStrategy inputAttackStrategy)
+            {
+                inputAttackStrategy.UpdateCooldown(Time.deltaTime);
+            }
+
             if (_attack_strategy != null && _attack_strategy.CanExecute())
             {
                 Model?.PARequested();

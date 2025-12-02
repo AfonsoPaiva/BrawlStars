@@ -1,9 +1,9 @@
 using Assets.Scripts.Models;
+using Assets.Scripts.Models.ColtModels;
 using UnityEngine;
 
 namespace Assets.Scripts.Strategies.Damage
 {
-
     public class CriticalDamageStrategy : DamageStrategyBase
     {
         private readonly float _critChance;
@@ -15,10 +15,11 @@ namespace Assets.Scripts.Strategies.Damage
             _critMultiplier = critMultiplier;
         }
 
-        public override float CalculateDamage(float baseDamage, Brawler target, GameObject sourceObject, GameObject targetObject)
+        public override float CalculateDamage(Brawler target, Vector3 targetPosition, ColtBullet bullet)
         {
             bool isCritical = Random.value <= _critChance;
-            return isCritical ? baseDamage * _critMultiplier : baseDamage;
+            return isCritical ? bullet.Damage * _critMultiplier : bullet.Damage;
         }
+
     }
 }

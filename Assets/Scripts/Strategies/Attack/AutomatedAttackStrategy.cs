@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 namespace Assets.Scripts.Strategies.Attack
 {
@@ -10,24 +10,28 @@ namespace Assets.Scripts.Strategies.Attack
         public AutomatedAttackStrategy(float attackInterval = 1f)
         {
             _attackInterval = attackInterval;
-            _attackCooldown = 0f;
+            _attackCooldown = 0f; 
         }
 
         public override bool CanExecute()
         {
-            // Update cooldown first
-            if (_attackCooldown > 0f)
-            {
-                _attackCooldown -= Time.deltaTime;
-            }
-
+            // Simply check if cooldown has expired
             return _attackCooldown <= 0f;
         }
 
         public override void Execute(float deltaTime)
         {
-            // Attack logic - just reset the cooldown
-            ResetCooldown();
+            // Reset cooldown after attack is executed
+            _attackCooldown = _attackInterval;
+        }
+
+        // Called every frame to update the cooldown timer
+        public void UpdateCooldown(float deltaTime)
+        {
+            if (_attackCooldown > 0f)
+            {
+                _attackCooldown -= deltaTime;
+            }
         }
 
         public void ResetCooldown()
@@ -35,7 +39,6 @@ namespace Assets.Scripts.Strategies.Attack
             _attackCooldown = _attackInterval;
         }
 
-        // Optional: Add a method to check current cooldown state
         public bool IsOnCooldown()
         {
             return _attackCooldown > 0f;
