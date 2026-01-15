@@ -1,6 +1,6 @@
 using UnityEngine;
 
-namespace Assets.Scripts.Strategies.Movement
+namespace Assets.Scripts.Strategies
 {
     public class RotationalMovementStrategy : MovementStrategyBase
     {

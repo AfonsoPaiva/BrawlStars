@@ -1,10 +1,11 @@
-﻿using Assets.Scripts.Strategies.Damage;
-using System;
+﻿using System;
 using UnityEngine;
+using Assets.Scripts.Interfaces;
+using Assets.Scripts.Strategies;
 
-namespace Assets.Scripts.Models.ColtModels
+namespace Assets.Scripts.Models
 {
-    public class ColtBullet : UnityModelBaseClass
+    public class ColtBullet : UnityModelBaseClass, IBullet
     {
         public event EventHandler Expired;
         public event EventHandler PositionChanged;
@@ -21,6 +22,11 @@ namespace Assets.Scripts.Models.ColtModels
         private Brawler _owner;
         private IDamageStrategy _damageStrategy;
 
+        public IDamageStrategy DamageStrategy
+        {
+            get => _damageStrategy ??= new StandardDamageStrategy();
+            set => _damageStrategy = value ?? new StandardDamageStrategy();
+        }
 
         //this is for the pool implementation
         public bool IsActive { get; internal set; } = false;
@@ -74,12 +80,6 @@ namespace Assets.Scripts.Models.ColtModels
         {
             get => _owner;
             set => _owner = value;
-        }
-
-        public IDamageStrategy DamageStrategy
-        {
-            get => _damageStrategy ?? (_damageStrategy = new StandardDamageStrategy());
-            set => _damageStrategy = value ?? new StandardDamageStrategy();
         }
 
         //  initialize bullet 

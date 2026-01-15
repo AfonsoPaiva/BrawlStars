@@ -1,9 +1,9 @@
-﻿using Assets.Scripts.Models.ColtModels;
-using Assets.Scripts.Models;
+﻿using Assets.Scripts.Models;
 using System.ComponentModel;
 using UnityEngine;
+using Assets.Scripts.Interfaces;
 
-namespace Assets.Scripts.Presenters.ColtPresenters
+namespace Assets.Scripts.Presenters
 {
     [RequireComponent(typeof(Collider))]
     public class ColtBulletPresenter : PresenterBaseClass<ColtBullet>

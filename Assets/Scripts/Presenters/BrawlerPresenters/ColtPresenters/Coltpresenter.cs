@@ -1,10 +1,8 @@
 using Assets.Scripts.Models;
-using Assets.Scripts.Models.ColtModels;
-using Assets.Scripts.Presenters.ColtPresenters;
-using Assets.Scripts.Strategies.Attack;
-using Assets.Scripts.Strategies.Movement;
 using System.Collections.Generic;
 using UnityEngine;
+using Assets.Scripts.Interfaces;
+using Assets.Scripts.Strategies;
 
 namespace Assets.Scripts.Presenters
 {

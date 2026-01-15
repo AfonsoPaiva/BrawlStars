@@ -1,41 +1,27 @@
 ﻿using Assets.Scripts.Models;
-using Assets.Scripts.Models.ColtModels;
-using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using UnityEngine;
-using System.Collections;
-using Assets.Scripts.Models.ElPrimoModels;
 using UnityEngine.InputSystem;
-using Assets.Scripts.Strategies.Attack;
-using Assets.Scripts.Strategies.Movement;
+using Assets.Scripts.Interfaces;
+
 
 namespace Assets.Scripts.Presenters
 {
-    internal class PD3StartGamePresenter : PresenterBaseClass<PD3StarsGame>
+    public class PD3StartGamePresenter : Singleton<PD3StartGamePresenter>
     {
-        public static PD3StartGamePresenter Instance { get; private set; }
-
         [Header("Brawler Prefabs")]
         [SerializeField] private GameObject coltPrefab;
         [SerializeField] private GameObject elPrimoPrefab;
 
         [Header("Spawn Points")]
-        [SerializeField] private Transform coltSpawnPoint;
-        [SerializeField] private Transform elPrimoSpawnPoint;
+        [SerializeField] private Transform[] spawnPoints;
 
-        [Header("Existing Scene Player")]
-        [SerializeField] private GameObject existingColtPlayer; 
+        private PD3StarsGame _model;
+        private readonly List<GameObject> _brawlerInstances = new List<GameObject>();
+        private int _nextSpawnIndex = 0;
 
-        private float _currentSpawnDelay;
-        private float _maxSpawnDelay = 3f;
-        private int _maxSpawnCounter = 2;
-        private int _currentSpawnCounter = 0;
+        public PD3StarsGame Model => _model;
 
-        private List<GameObject> brawlerInstances = new List<GameObject>();
-        private bool _hasConfiguredLocalPlayer = false;
-
-        // Helper enum to specify brawler type without creating model instance
         public enum BrawlerType
         {
             Colt,
@@ -44,132 +30,160 @@ namespace Assets.Scripts.Presenters
 
         protected override void Awake()
         {
-            base.Awake();
-            if (Instance != null && Instance != this)
-            {
-                Destroy(gameObject);
-                return;
-            }
-            Instance = this;
-            ConfigureExistingScenePlayer();
+            base.Awake(); 
+
+            // Create game model
+            _model = new PD3StarsGame();
+
+            // Subscribe to model events
+            _model.BrawlerAdded += OnBrawlerAdded;
+            _model.BrawlerRemoved += OnBrawlerRemoved;
+
+            // Spawn initial brawlers
+            SpawnInitialBrawlers();
         }
 
-        private void ConfigureExistingScenePlayer()
+        private void SpawnInitialBrawlers()
         {
-            if (existingColtPlayer != null && !_hasConfiguredLocalPlayer)
+            // Spawn local player (Colt)
+            AddBrawler(BrawlerType.Colt, isLocalPlayer: true);
+
+            // Spawn NPC brawlers
+            AddBrawler(BrawlerType.ElPrimo, isLocalPlayer: false);
+            AddBrawler(BrawlerType.Colt, isLocalPlayer: false);
+        }
+
+        private Transform GetNextSpawnPoint()
+        {
+            if (spawnPoints == null || spawnPoints.Length == 0)
             {
-                var presenter = existingColtPlayer.GetComponent<BrawlerPresenter>();
-                if (presenter != null)
+                Debug.LogWarning("No spawn points assigned! Using default position.");
+                return null;
+            }
+
+            Transform spawnPoint = spawnPoints[_nextSpawnIndex % spawnPoints.Length];
+            _nextSpawnIndex++;
+            return spawnPoint;
+        }
+
+        public void AddBrawler(BrawlerType brawlerType, bool isLocalPlayer = false)
+        {
+            GameObject prefab = brawlerType switch
+            {
+                BrawlerType.Colt => coltPrefab,
+                BrawlerType.ElPrimo => elPrimoPrefab,
+                _ => null
+            };
+
+            if (prefab == null)
+            {
+                Debug.LogError($"Prefab for {brawlerType} not assigned!");
+                return;
+            }
+
+            // Get spawn position
+            Transform spawnPoint = GetNextSpawnPoint();
+            Vector3 position = spawnPoint != null ? spawnPoint.position : Vector3.zero;
+            Quaternion rotation = spawnPoint != null ? spawnPoint.rotation : Quaternion.identity;
+
+            // Instantiate
+            GameObject instance = Instantiate(prefab, position, rotation);
+            
+            // Configure based on local/NPC
+            ConfigureBrawlerInstance(instance, isLocalPlayer);
+
+            // Get presenter and add model to game
+            var presenter = instance.GetComponent<BrawlerPresenter>();
+            if (presenter != null && presenter.Model != null)
+            {
+                _model.AddBrawler(presenter.Model, isLocalPlayer);
+
+                // Ensure HUDModel receives the player model immediately (handles cases where HUD expects IHUD)
+                var hud = HUDModel.Instance;
+                if (hud != null && presenter.Model is IHUD hudThing)
                 {
-                    existingColtPlayer.tag = "Player";
-                    var playerInput = existingColtPlayer.GetComponent<PlayerInput>();
-                    if (playerInput != null)
+                    if (hud.Slot1 != hudThing && hud.Slot2 != hudThing && hud.Slot3 != hudThing)
                     {
-                        playerInput.enabled = true;
-                        playerInput.ActivateInput();
+                        hud.AssignNext(hudThing);
                     }
+                }
+            }
 
-                    // Initialize strategies
-                    presenter.ForceInitializeStrategies();
-                    _hasConfiguredLocalPlayer = true;
+            _brawlerInstances.Add(instance);
+            Debug.Log($"Spawned {brawlerType} as {(isLocalPlayer ? "Local Player" : "NPC")}");
+        }
 
-                    Debug.Log("Configured existing scene Colt as local player");
+        private void ConfigureBrawlerInstance(GameObject instance, bool isLocalPlayer)
+        {
+            if (isLocalPlayer)
+            {
+                instance.tag = "Player";
+                var playerInput = instance.GetComponent<PlayerInput>();
+                if (playerInput != null)
+                {
+                    playerInput.enabled = true;
+                    playerInput.ActivateInput();
+                }
+            }
+            else
+            {
+                instance.tag = "Untagged";
+                var playerInput = instance.GetComponent<PlayerInput>();
+                if (playerInput != null)
+                {
+                    playerInput.enabled = false;
+                }
+            }
+
+            var presenter = instance.GetComponent<BrawlerPresenter>();
+            presenter?.ForceInitializeStrategies();
+        }
+
+        private void OnBrawlerAdded(object sender, BrawlerAddedEventArgs e)
+        {
+            Debug.Log($"Brawler added to game: {e.Brawler.GetType().Name}, IsLocal: {e.IsLocalPlayer}");
+
+            // Assign the first three brawlers to HUDModel slots (the model will raise slot changed events)
+            var hudModel = HUDModel.Instance;
+            if (hudModel != null)
+            {
+                if (e.Brawler is IHUD hudThing)
+                {
+                    int assigned = hudModel.AssignNext(hudThing);
+                }
+            }
+        }
+
+        private void OnBrawlerRemoved(object sender, BrawlerRemovedEventArgs e)
+        {
+            Debug.Log($"Brawler removed from game: {e.Brawler.GetType().Name}");
+            // Optionally clear HUD slots when brawler removed
+            var hudModel = HUDModel.Instance;
+            if (hudModel != null)
+            {
+                if (e.Brawler is IHUD hudThing)
+                {
+                    // remove from matching slot
+                    if (hudModel.Slot1 == hudThing) hudModel.ClearSlot(1);
+                    else if (hudModel.Slot2 == hudThing) hudModel.ClearSlot(2);
+                    else if (hudModel.Slot3 == hudThing) hudModel.ClearSlot(3);
                 }
             }
         }
 
         protected override void OnDestroy()
         {
-            if (Instance == this)
+            if (_model != null)
             {
-                Instance = null;
+                _model.BrawlerAdded -= OnBrawlerAdded;
+                _model.BrawlerRemoved -= OnBrawlerRemoved;
             }
             base.OnDestroy();
         }
 
-        protected override void FixedUpdate()
+        private void Update()
         {
-            base.FixedUpdate();
-            if (Instance != null)
-            {
-                SpawnBrawlerNetworkSim();
-            }
-        }
-
-        private void SpawnBrawlerNetworkSim()
-        {
-            if (_currentSpawnCounter >= _maxSpawnCounter) return;
-            _currentSpawnDelay += Time.fixedDeltaTime;
-            if (_currentSpawnDelay > _maxSpawnDelay)
-            {
-                if (_currentSpawnCounter % 2 == 0)
-                {
-                    AddBrawler(BrawlerType.Colt, false); 
-                }
-                else
-                {
-                    AddBrawler(BrawlerType.ElPrimo, false); 
-                }
-                _currentSpawnDelay -= _maxSpawnDelay;
-                _currentSpawnCounter++;
-            }
-        }
-
-        public void AddBrawler(BrawlerType brawlerType, bool isLocalPlayer = false)
-        {
-            if (isLocalPlayer && _hasConfiguredLocalPlayer)
-            {
-                Debug.LogWarning("Local player already exists in scene. Not spawning another one.");
-                return;
-            }
-
-            GameObject prefab = null;
-            Transform spawnPoint = null;
-
-            switch (brawlerType)
-            {
-                case BrawlerType.Colt:
-                    prefab = coltPrefab;
-                    spawnPoint = coltSpawnPoint;
-                    break;
-                case BrawlerType.ElPrimo:
-                    prefab = elPrimoPrefab;
-                    spawnPoint = elPrimoSpawnPoint;
-                    break;
-            }
-
-            if (prefab != null && spawnPoint != null)
-            {
-                var instance = Instantiate(prefab, spawnPoint.position, spawnPoint.rotation);
-
-                // Configure as NPC (local player already exists in scene)
-                instance.tag = "Untagged";
-
-                // Disable PlayerInput for NPCs
-                var instancePlayerInput = instance.GetComponent<PlayerInput>();
-                if (instancePlayerInput != null)
-                {
-                    instancePlayerInput.enabled = false;
-                }
-
-                var presenter = instance.GetComponent<BrawlerPresenter>();
-                if (presenter != null)
-                {
-                    // DON'T set Model - presenter already creates it in Awake()!
-                    // presenter.Model = brawlerModel; // ❌ REMOVED - This was creating duplicate!
-
-                    presenter.ForceInitializeStrategies();
-                }
-
-                brawlerInstances.Add(instance);
-
-                Debug.Log($"Spawned {brawlerType} as NPC");
-            }
-        }
-
-        protected override void Model_PropertyChanged(object sender, PropertyChangedEventArgs e)
-        {
-
+            _model?.Update();
         }
     }
 }

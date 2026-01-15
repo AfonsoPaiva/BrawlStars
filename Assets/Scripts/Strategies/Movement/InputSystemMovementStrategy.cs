@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Assets.Scripts.Strategies.Movement
+namespace Assets.Scripts.Strategies
 {
     public class InputSystemMovementStrategy : MovementStrategyBase
     {

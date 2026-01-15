@@ -2,7 +2,7 @@
 using UnityEngine;
 using Assets.Scripts.Models;
 
-namespace Assets.Scripts.Models.ElPrimoModels
+namespace Assets.Scripts.Models
 {
     public class ElPrimoBullet : UnityModelBaseClass
     {

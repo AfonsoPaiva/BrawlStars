@@ -1,6 +1,7 @@
 using UnityEngine;
+using Assets.Scripts.Interfaces;
 
-namespace Assets.Scripts.Strategies.Movement
+namespace Assets.Scripts.Strategies
 {
     public abstract class MovementStrategyBase : IMovementStrategy
     {
@@ -12,11 +13,9 @@ namespace Assets.Scripts.Strategies.Movement
         {
             if (_moveDirection.sqrMagnitude > 0.01f)
             {
-                // Move
                 Vector3 movement = new Vector3(_moveDirection.x, 0, _moveDirection.y);
                 transform.position += movement * moveSpeed * deltaTime;
 
-                // Rotate
                 Quaternion targetRotation = Quaternion.LookRotation(movement);
                 transform.rotation = Quaternion.Slerp(transform.rotation, targetRotation, rotationSpeed * deltaTime);
             }

@@ -1,11 +1,9 @@
-using Assets.Scripts.Models;
 using NUnit.Framework;
-using PD3HealthBars;
 using System;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Assets.Scripts.Models.ColtModels
+namespace Assets.Scripts.Models
 {
     public class Colt : Brawler
     {

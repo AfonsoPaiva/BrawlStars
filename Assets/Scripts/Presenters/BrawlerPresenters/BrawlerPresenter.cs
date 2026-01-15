@@ -1,11 +1,12 @@
 using Assets.Scripts.Models;
-using Assets.Scripts.Strategies.Attack;
-using Assets.Scripts.Strategies.Movement;
-using PD3HealthBars;
+using Assets.Scripts.Healthbars;
 using System.ComponentModel;
 using UnityEngine;
 using UnityEngine.InputSystem;
 using UnityEngine.UIElements;
+using Assets.Scripts.Interfaces;   
+using Assets.Scripts.Strategies;
+
 
 namespace Assets.Scripts.Presenters
 {
@@ -23,7 +24,7 @@ namespace Assets.Scripts.Presenters
         [SerializeField] private UIDocument _hudDOcument;
         [SerializeField] private Transform healthBarAnchor;
 
-        private PD3HealthBars.HealthBarPresenter _healthBarPresenter;
+        private Healthbars.HealthBarPresenter _healthBarPresenter;
         private IMovementStrategy _movementStrategy;
         private IAttackStrategy _attack_strategy;
         private PlayerInput _playerInput;
@@ -57,6 +58,18 @@ namespace Assets.Scripts.Presenters
             if (previousModel != null)
             {
                 previousModel.Died -= OnBrawlerDied;
+
+                // If previous model was assigned to HUD, clear its slot so reassignment won't leave stale entries
+                if (previousModel is IHUD prevHud)
+                {
+                    var hud = HUDModel.Instance;
+                    if (hud != null)
+                    {
+                        if (hud.Slot1 == prevHud) hud.ClearSlot(1);
+                        else if (hud.Slot2 == prevHud) hud.ClearSlot(2);
+                        else if (hud.Slot3 == prevHud) hud.ClearSlot(3);
+                    }
+                }
             }
 
             // Subscribe to new model
@@ -147,7 +160,7 @@ namespace Assets.Scripts.Presenters
             Transform hbTransform = healthBarAnchor;
             if (hbTransform != null)
             {
-                _healthBarPresenter = new PD3HealthBars.HealthBarPresenter(Model, hbTransform, cloneRoot, _hudDOcument);
+                _healthBarPresenter = new Healthbars.HealthBarPresenter(Model, hbTransform, cloneRoot, _hudDOcument);
             }
         }
 
@@ -199,13 +212,23 @@ namespace Assets.Scripts.Presenters
         protected virtual void HandleAttack()
         {
             // Update cooldown for strategies that need it every frame
+            float paProgress = 0f;
+
             if (_attack_strategy is AutomatedAttackStrategy automatedStrategy)
             {
                 automatedStrategy.UpdateCooldown(Time.deltaTime);
+                paProgress = automatedStrategy.PAProgress;
             }
             else if (_attack_strategy is InputSystemAttackStrategy inputAttackStrategy)
             {
                 inputAttackStrategy.UpdateCooldown(Time.deltaTime);
+                paProgress = inputAttackStrategy.PAProgress;
+            }
+
+            // Update model's PAProgress so HUD can reflect it
+            if (Model != null)
+            {
+                Model.PAProgress = paProgress;
             }
 
             if (_attack_strategy != null && _attack_strategy.CanExecute())

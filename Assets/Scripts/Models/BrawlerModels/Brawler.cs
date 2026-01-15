@@ -1,13 +1,10 @@
-using Assets.Scripts.BaseFSM;
-using PD3HealthBars;
 using System;
-using System.ComponentModel;
 using UnityEngine;
-using UnityEngine.UIElements;
+using Assets.Scripts.Interfaces;
 
 namespace Assets.Scripts.Models
 {
-    public abstract partial class Brawler : UnityModelBaseClass, IHealthBar
+    public abstract partial class Brawler : UnityModelBaseClass, IBrawler, IHealthBar, IHUD
     {
         // Constants
         public const float MAXHEALTH = 100f;
@@ -36,13 +33,31 @@ namespace Assets.Scripts.Models
             }
         }
 
-
         public event EventHandler HealthChanged;
         public event EventHandler Died;
         public float HealthProgress => Mathf.Clamp01(_health / MAXHEALTH);
 
-        // Health bar presenter field
-        protected HealthBarPresenter _healthBarPresenter;
+        // HUD: PA progress and display name
+        private float _paProgress;
+        public float PAProgress
+        {
+            get => _paProgress;
+            set
+            {
+                float clamped = Mathf.Clamp01(value);
+                if (!Mathf.Approximately(_paProgress, clamped))
+                {
+                    _paProgress = clamped;
+                    OnPropertyChanged(nameof(PAProgress));
+                    PAProgressChanged?.Invoke(this, EventArgs.Empty);
+                }
+            }
+        }
+
+        public event EventHandler PAProgressChanged;
+
+        public string DisplayName => GetType().Name;
+        // End HUD additions
 
         public abstract void PARequested();
 

@@ -1,9 +1,8 @@
 using Assets.Scripts.Models;
-using PD3HealthBars;
 using System;
 using UnityEngine;
 
-namespace Assets.Scripts.Models.ElPrimoModels
+namespace Assets.Scripts.Models
 {
     public class ElPrimo : Brawler
     {

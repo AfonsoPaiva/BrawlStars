@@ -1,21 +1,22 @@
 ﻿using System;
 using UnityEngine;
 using UnityEngine.UIElements;
+using Assets.Scripts.Interfaces;
 
-namespace PD3HealthBars {
+namespace Assets.Scripts.Healthbars {
     public class HealthBarPresenter
     {
         const float _width = 40f;
         const float _height = 10f;
 
-        public IHealthBar Model { get; set; }
+        public Assets.Scripts.Interfaces.IHealthBar Model { get; set; }
         public VisualElement HBClone { get; set; }
 
         private readonly Transform _hbTransform;
         private readonly UIDocument _hudDocument;
         private VisualElement _blackSide;
 
-        public HealthBarPresenter(IHealthBar healthPublisher, Transform hbTransform, VisualElement hbClone, UIDocument hudDocument)
+        public HealthBarPresenter(Assets.Scripts.Interfaces.IHealthBar healthPublisher, Transform hbTransform, VisualElement hbClone, UIDocument hudDocument)
         {
             Model = healthPublisher;
             Model.HealthChanged += Model_HealthChanged;

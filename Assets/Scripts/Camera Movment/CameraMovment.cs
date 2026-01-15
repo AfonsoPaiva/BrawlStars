@@ -7,7 +7,7 @@ using UnityEngine;
 
 namespace Assets.Scripts.Camera_Movment
 {
-    internal class CameraMovment : MonoBehaviour
+    internal class CameraMovment : Singleton<CameraMovment>
     {
         [SerializeField]
         private Transform target;   // The target to follow
@@ -40,13 +40,15 @@ namespace Assets.Scripts.Camera_Movment
         private Quaternion targetRot;
         private Quaternion startRotation;
 
-        void Awake()
+        protected override void Awake()
         {
+            base.Awake(); // Singleton initialization
+            
             yOffset = transform.localPosition.y;
             startRotation = transform.localRotation;
 
             if (followPlayerDefault)    // If folow player by default
-                target = GameObject.FindGameObjectWithTag("Player").transform; // Gets player with "Player" tag
+                target = GameObject.FindGameObjectWithTag("Player")?.transform; // Gets player with "Player" tag
 
             Cursor.lockState = cursorLocked ? CursorLockMode.Locked : CursorLockMode.None; // Sets cursor lockmode
             Cursor.visible = !cursorLocked; // Sets cursor visible
@@ -85,7 +87,7 @@ namespace Assets.Scripts.Camera_Movment
         {
             if (target == null)     // If we dont have a target
             {
-                Debug.LogError("ameraFollow:  NO TARGET FOUND");
+                Debug.LogError("CameraFollow: NO TARGET FOUND");
                 return;
             }
 
@@ -117,6 +119,11 @@ namespace Assets.Scripts.Camera_Movment
         private void goToStartRotation()    // moves to start rotation
         {
             transform.localRotation = Quaternion.Slerp(transform.localRotation, startRotation, forceStartRotationSpeed * Time.deltaTime); // Slerp between rotation
+        }
+
+        public void SetTarget(Transform newTarget)
+        {
+            target = newTarget;
         }
     }
 }

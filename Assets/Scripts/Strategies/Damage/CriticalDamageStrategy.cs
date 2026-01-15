@@ -1,25 +1,26 @@
-using Assets.Scripts.Models;
-using Assets.Scripts.Models.ColtModels;
+using Assets.Scripts.Interfaces;
 using UnityEngine;
 
-namespace Assets.Scripts.Strategies.Damage
+namespace Assets.Scripts.Strategies
 {
     public class CriticalDamageStrategy : DamageStrategyBase
     {
-        private readonly float _critChance;
-        private readonly float _critMultiplier;
+        private readonly float _criticalMultiplier;
+        private readonly float _criticalRange;
 
-        public CriticalDamageStrategy(float critChance = 0.2f, float critMultiplier = 2f)
+        public CriticalDamageStrategy(float criticalMultiplier = 2.0f, float criticalRange = 1.0f)
         {
-            _critChance = Mathf.Clamp01(critChance);
-            _critMultiplier = critMultiplier;
+            _criticalMultiplier = criticalMultiplier;
+            _criticalRange = criticalRange;
         }
 
-        public override float CalculateDamage(Brawler target, Vector3 targetPosition, ColtBullet bullet)
+        public override float CalculateDamage(IBrawler target, Vector3 targetPosition, IBullet bullet)
         {
-            bool isCritical = Random.value <= _critChance;
-            return isCritical ? bullet.Damage * _critMultiplier : bullet.Damage;
-        }
+            if (target == null || bullet == null) return 0f;
 
+            float distance = Vector3.Distance(bullet.Position, targetPosition);
+            float baseDamage = bullet.Damage;
+            return (distance <= _criticalRange) ? baseDamage * _criticalMultiplier : baseDamage;
+        }
     }
 }

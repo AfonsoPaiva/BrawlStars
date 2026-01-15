@@ -1,12 +1,11 @@
-    using Assets.Scripts.Models;
-using Assets.Scripts.Models.ColtModels;
+using Assets.Scripts.Interfaces;
 using UnityEngine;
 
-namespace Assets.Scripts.Strategies.Damage
+namespace Assets.Scripts.Strategies
 {
     public class StandardDamageStrategy : DamageStrategyBase
     {
-        public override float CalculateDamage(Brawler target, Vector3 targetPosition, ColtBullet bullet)
+        public override float CalculateDamage(IBrawler target, Vector3 targetPosition, IBullet bullet)
         {
             return bullet.Damage;
         }

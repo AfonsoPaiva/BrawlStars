@@ -1,8 +1,7 @@
 ﻿using Assets.Scripts.Models;
-using Assets.Scripts.Models.ElPrimoModels;
-using Assets.Scripts.Strategies.Attack;
-using Assets.Scripts.Strategies.Movement;
 using UnityEngine;
+using Assets.Scripts.Interfaces;
+using Assets.Scripts.Strategies;
 
 namespace Assets.Scripts.Presenters
 {

@@ -176,12 +176,13 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   moveSpeed: 5
   rotationSpeed: 10
+  attackInterval: 0.5
   healthBarTemplate: {fileID: 9197481963319205126, guid: 81c545f64f363624ba2a605634eb3417, type: 3}
   _hudDOcument: {fileID: 3006631683219577744}
   healthBarAnchor: {fileID: 2416065120744883746}
   coltBulletPrefab: {fileID: 6286096128150831690, guid: 6a5aab139e74432449b45f1950fbc19a, type: 3}
   coltRotationSpeed: 180
-  automatedAttackInterval: 1
+  automatedAttackInterval: 0.1
 --- !u!54 &8913996440278620932
 Rigidbody:
   m_ObjectHideFlags: 0

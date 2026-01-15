@@ -3,8 +3,11 @@ using System;
 using System.ComponentModel;
 using UnityEngine;
 
-public abstract class UnityModelBaseClass : ModelBaseClass
+namespace Assets.Scripts.Models
 {
-    public virtual void Update() { }
-    public virtual void FixedUpdate() { }
+    public abstract class UnityModelBaseClass : ModelBaseClass
+    {
+        public virtual void Update() { }
+        public virtual void FixedUpdate() { }
+    }
 }

@@ -1,29 +1,27 @@
-using Assets.Scripts.Models;
-using Assets.Scripts.Models.ColtModels;
+using Assets.Scripts.Interfaces;
 using UnityEngine;
 
-namespace Assets.Scripts.Strategies.Damage
+namespace Assets.Scripts.Strategies
 {
     public class DistanceBasedDamageStrategy : DamageStrategyBase
     {
-        private readonly float _maxDistance;
+        private readonly float _maxRange;
         private readonly float _minDamageMultiplier;
 
-        public DistanceBasedDamageStrategy(float maxDistance = 10f, float minDamageMultiplier = 0.5f)
+        public DistanceBasedDamageStrategy(float maxRange = 10f, float minDamageMultiplier = 0.5f)
         {
-            _maxDistance = maxDistance;
-            _minDamageMultiplier = Mathf.Clamp01(minDamageMultiplier);
+            _maxRange = maxRange;
+            _minDamageMultiplier = minDamageMultiplier;
         }
 
-        public override float CalculateDamage(Brawler target, Vector3 targetPosition, ColtBullet bullet)
+        public override float CalculateDamage(IBrawler target, Vector3 targetPosition, IBullet bullet)
         {
             if (target == null || bullet == null) return 0f;
 
-            // Calculate distance using passed position and bullet position
             float distance = Vector3.Distance(bullet.Position, targetPosition);
-            float damageMultiplier = Mathf.Lerp(1f, _minDamageMultiplier, distance / _maxDistance);
-            
-            return bullet.Damage * damageMultiplier;
+            float t = Mathf.Clamp01(distance / _maxRange);
+            float multiplier = Mathf.Lerp(1f, _minDamageMultiplier, t);
+            return bullet.Damage * multiplier;
         }
     }
 }

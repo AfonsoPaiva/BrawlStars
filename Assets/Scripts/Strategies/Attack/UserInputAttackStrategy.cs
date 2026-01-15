@@ -1,4 +1,4 @@
-namespace Assets.Scripts.Strategies.Attack
+namespace Assets.Scripts.Strategies
 {
     public class UserInputAttackStrategy : AttackStrategyBase
     {

@@ -1,10 +1,8 @@
-﻿using Assets.Scripts.Models.ColtModels;
-using Assets.Scripts.Models.ElPrimoModels;
-using Assets.Scripts.Strategies.Damage;
+﻿using Assets.Scripts.Models;
 using System.ComponentModel;
 using UnityEngine;
 
-namespace Assets.Scripts.Presenters.ElPrimoPresenters
+namespace Assets.Scripts.Presenters
 {
     [RequireComponent(typeof(Collider))]
     public class ElPrimoBulletPresenter : PresenterBaseClass<ElPrimoBullet>
