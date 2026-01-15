@@ -39,16 +39,44 @@ namespace Assets.Scripts.Presenters
             _model.BrawlerAdded += OnBrawlerAdded;
             _model.BrawlerRemoved += OnBrawlerRemoved;
 
-            // Spawn initial brawlers
+            // Register existing local player in scene FIRST
+            RegisterExistingLocalPlayer();
+
+            // Spawn initial brawlers (NPCs only now)
             SpawnInitialBrawlers();
+        }
+
+        private void RegisterExistingLocalPlayer()
+        {
+            // Find the existing player in the scene by tag
+            GameObject playerObject = GameObject.FindGameObjectWithTag("Player");
+            
+            if (playerObject != null)
+            {
+                Debug.Log($"PD3StartGamePresenter: Found existing player: {playerObject.name}");
+                
+                var presenter = playerObject.GetComponent<BrawlerPresenter>();
+                if (presenter != null && presenter.Model != null)
+                {
+                    // Register as local player
+                    _model.AddBrawler(presenter.Model, isLocalPlayer: true);
+                    _brawlerInstances.Add(playerObject);
+                    Debug.Log($"PD3StartGamePresenter: Registered existing local player: {presenter.Model.GetType().Name}");
+                }
+                else
+                {
+                    Debug.LogError($"PD3StartGamePresenter: Player GameObject '{playerObject.name}' has no BrawlerPresenter or Model!");
+                }
+            }
+            else
+            {
+                Debug.LogWarning("PD3StartGamePresenter: No existing GameObject with 'Player' tag found in scene!");
+            }
         }
 
         private void SpawnInitialBrawlers()
         {
-            // Spawn local player (Colt)
-            AddBrawler(BrawlerType.Colt, isLocalPlayer: true);
-
-            // Spawn NPC brawlers
+            // Only spawn NPC brawlers now (local player already exists)
             AddBrawler(BrawlerType.ElPrimo, isLocalPlayer: false);
             AddBrawler(BrawlerType.Colt, isLocalPlayer: false);
         }
@@ -97,16 +125,6 @@ namespace Assets.Scripts.Presenters
             if (presenter != null && presenter.Model != null)
             {
                 _model.AddBrawler(presenter.Model, isLocalPlayer);
-
-                // Ensure HUDModel receives the player model immediately (handles cases where HUD expects IHUD)
-                var hud = HUDModel.Instance;
-                if (hud != null && presenter.Model is IHUD hudThing)
-                {
-                    if (hud.Slot1 != hudThing && hud.Slot2 != hudThing && hud.Slot3 != hudThing)
-                    {
-                        hud.AssignNext(hudThing);
-                    }
-                }
             }
 
             _brawlerInstances.Add(instance);
@@ -143,31 +161,22 @@ namespace Assets.Scripts.Presenters
         {
             Debug.Log($"Brawler added to game: {e.Brawler.GetType().Name}, IsLocal: {e.IsLocalPlayer}");
 
-            // Assign the first three brawlers to HUDModel slots (the model will raise slot changed events)
+            // Assign brawlers to HUDModel slots
             var hudModel = HUDModel.Instance;
-            if (hudModel != null)
+            if (hudModel != null && e.Brawler is IHUD hudThing)
             {
-                if (e.Brawler is IHUD hudThing)
-                {
-                    int assigned = hudModel.AssignNext(hudThing);
-                }
+                hudModel.AssignNext(hudThing);
             }
         }
 
         private void OnBrawlerRemoved(object sender, BrawlerRemovedEventArgs e)
         {
             Debug.Log($"Brawler removed from game: {e.Brawler.GetType().Name}");
-            // Optionally clear HUD slots when brawler removed
+            
             var hudModel = HUDModel.Instance;
-            if (hudModel != null)
+            if (hudModel != null && e.Brawler is IHUD hudThing)
             {
-                if (e.Brawler is IHUD hudThing)
-                {
-                    // remove from matching slot
-                    if (hudModel.Slot1 == hudThing) hudModel.ClearSlot(1);
-                    else if (hudModel.Slot2 == hudThing) hudModel.ClearSlot(2);
-                    else if (hudModel.Slot3 == hudThing) hudModel.ClearSlot(3);
-                }
+                hudModel.Remove(hudThing);
             }
         }
 

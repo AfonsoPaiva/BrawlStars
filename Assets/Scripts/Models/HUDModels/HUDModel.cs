@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Assets.Scripts.Interfaces;
 
 namespace Assets.Scripts.Models
@@ -10,64 +11,83 @@ namespace Assets.Scripts.Models
 
         private HUDModel() { }
 
+        // Dynamic list of IHUD elements
+        private readonly List<IHUD> _slots = new List<IHUD>();
+
+        public IReadOnlyList<IHUD> Slots => _slots;
+        public int SlotCount => _slots.Count;
+
         public event EventHandler<HUDSlotChangedEventArgs> SlotChanged;
+        public event EventHandler<HUDSlotAddedEventArgs> SlotAdded;
+        public event EventHandler<HUDSlotRemovedEventArgs> SlotRemoved;
 
-        private IHUD _slot1;
-        public IHUD Slot1
-        {
-            get => _slot1;
-            set => SetSlot(ref _slot1, value, 1);
-        }
+        // Legacy properties for backward compatibility
+        public IHUD Slot1 => _slots.Count > 0 ? _slots[0] : null;
+        public IHUD Slot2 => _slots.Count > 1 ? _slots[1] : null;
+        public IHUD Slot3 => _slots.Count > 2 ? _slots[2] : null;
 
-        private IHUD _slot2;
-        public IHUD Slot2
-        {
-            get => _slot2;
-            set => SetSlot(ref _slot2, value, 2);
-        }
-
-        private IHUD _slot3;
-        public IHUD Slot3
-        {
-            get => _slot3;
-            set => SetSlot(ref _slot3, value, 3);
-        }
-
-        private void SetSlot(ref IHUD backingField,IHUD value, int slotIndex)
-        {
-            if (backingField == value) return;
-            backingField = value;
-            SlotChanged?.Invoke(this, new HUDSlotChangedEventArgs(slotIndex, value));
-        }
+        /// <summary>
+        /// Adds a new IHUD element and returns its slot index (1-based).
+        /// </summary>
         public int AssignNext(IHUD thing)
         {
-            if (Slot1 == null)
-            {
-                Slot1 = thing;
-                return 1;
-            }
-            if (Slot2 == null)
-            {
-                Slot2 = thing;
-                return 2;
-            }
-            if (Slot3 == null)
-            {
-                Slot3 = thing;
-                return 3;
-            }
-            return 0;
+            if (thing == null || _slots.Contains(thing)) return 0;
+
+            _slots.Add(thing);
+            int slotIndex = _slots.Count; // 1-based index
+
+            SlotAdded?.Invoke(this, new HUDSlotAddedEventArgs(slotIndex, thing));
+            SlotChanged?.Invoke(this, new HUDSlotChangedEventArgs(slotIndex, thing));
+
+            return slotIndex;
         }
 
-        // Allows explicit clearing
+        /// <summary>
+        /// Removes an IHUD element by reference.
+        /// </summary>
+        public void Remove(IHUD thing)
+        {
+            int idx = _slots.IndexOf(thing);
+            if (idx >= 0)
+            {
+                _slots.RemoveAt(idx);
+                SlotRemoved?.Invoke(this, new HUDSlotRemovedEventArgs(idx + 1, thing));
+            }
+        }
+
+        /// <summary>
+        /// Clears a slot by 1-based index.
+        /// </summary>
         public void ClearSlot(int slotIndex)
         {
-            if (slotIndex == 1) Slot1 = null;
-            else if (slotIndex == 2) Slot2 = null;
-            else if (slotIndex == 3) Slot3 = null;
+            int idx = slotIndex - 1;
+            if (idx >= 0 && idx < _slots.Count)
+            {
+                var thing = _slots[idx];
+                _slots.RemoveAt(idx);
+                SlotRemoved?.Invoke(this, new HUDSlotRemovedEventArgs(slotIndex, thing));
+            }
+        }
+
+        /// <summary>
+        /// Gets IHUD at 1-based slot index.
+        /// </summary>
+        public IHUD GetSlot(int slotIndex)
+        {
+            int idx = slotIndex - 1;
+            return (idx >= 0 && idx < _slots.Count) ? _slots[idx] : null;
+        }
+
+        public void ClearAll()
+        {
+            while (_slots.Count > 0)
+            {
+                ClearSlot(_slots.Count);
+            }
         }
     }
 
+    #region Event Args
     public class HUDSlotChangedEventArgs : EventArgs
     {
         public int SlotIndex { get; }
@@ -79,4 +99,29 @@ namespace Assets.Scripts.Models
             AssignedThing = assignedThing;
         }
     }
+
+    public class HUDSlotAddedEventArgs : EventArgs
+    {
+        public int SlotIndex { get; }
+        public IHUD AssignedThing { get; }
+
+        public HUDSlotAddedEventArgs(int slotIndex, IHUD assignedThing)
+        {
+            SlotIndex = slotIndex;
+            AssignedThing = assignedThing;
+        }
+    }
+
+    public class HUDSlotRemovedEventArgs : EventArgs
+    {
+        public int SlotIndex { get; }
+        public IHUD RemovedThing { get; }
+
+        public HUDSlotRemovedEventArgs(int slotIndex, IHUD removedThing)
+        {
+            SlotIndex = slotIndex;
+            RemovedThing = removedThing;
+        }
+    }
+    #endregion
 }

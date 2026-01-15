@@ -90,6 +90,7 @@ namespace Assets.Scripts.Presenters
             if (Model != null)
             {
                 Model.Died += OnBrawlerDied;
+                // HUD registration is handled by PD3StartGamePresenter - removed from here to avoid duplicates
             }
         }
 

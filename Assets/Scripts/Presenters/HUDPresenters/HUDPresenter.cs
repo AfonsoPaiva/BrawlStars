@@ -3,116 +3,154 @@ using TMPro;
 using Assets.Scripts.Interfaces;
 using Assets.Scripts.Models;
 using System;
+using System.Collections.Generic;
 
 namespace Assets.Scripts.Presenters
 {
     public class HUDPresenter : MonoBehaviour
     {
-        [SerializeField] private TMP_Text[] slotTexts;
-        private IHUD[] _models = new IHUD[3];
+        [Header("UI References")]
+        [SerializeField] private Transform slotContainer;
+        [SerializeField] private GameObject slotPrefab;
 
-        // per-slot cached event handlers (initialized in Awake)
-        private EventHandler[] OnHealthChanged;
-        private EventHandler[] OnPAChanged;
+        // Dynamic list of slot data
+        private readonly List<SlotData> _slotDataList = new List<SlotData>();
+
+        private class SlotData
+        {
+            public IHUD Model;
+            public TMP_Text Text;
+            public GameObject GameObject;
+            public EventHandler OnHealthChanged;
+            public EventHandler OnPAChanged;
+        }
 
         private void Awake()
         {
-            // create per-slot delegates so unsubscribe works reliably
-            OnHealthChanged = new EventHandler[3];
-            OnPAChanged = new EventHandler[3];
-            for (int i = 0; i < 3; i++)
-            {
-                int idx = i;
-                OnHealthChanged[i] = (s, e) => UpdateSlot(idx);
-                OnPAChanged[i] = (s, e) => UpdateSlot(idx);
-            }
-
-            // Subscribe to HUDModel changes
             var hud = HUDModel.Instance;
             if (hud != null)
             {
-                hud.SlotChanged += OnHUDSlotChanged;
+                hud.SlotAdded += OnSlotAdded;
+                hud.SlotRemoved += OnSlotRemoved;
 
-                // Sync current state in case slots were assigned earlier
-                SetSlot(1, hud.Slot1);
-                SetSlot(2, hud.Slot2);
-                SetSlot(3, hud.Slot3);
+                // Sync any existing slots
+                for (int i = 0; i < hud.SlotCount; i++)
+                {
+                    CreateSlotUI(i + 1, hud.Slots[i]);
+                }
             }
         }
 
         private void OnDestroy()
         {
-            // Unsubscribe from HUDModel
             var hud = HUDModel.Instance;
             if (hud != null)
             {
-                hud.SlotChanged -= OnHUDSlotChanged;
+                hud.SlotAdded -= OnSlotAdded;
+                hud.SlotRemoved -= OnSlotRemoved;
             }
 
-            // Unsubscribe any model events
-            for (int i = 0; i < _models.Length; i++)
+            // Cleanup all slots
+            foreach (var slotData in _slotDataList)
             {
-                if (_models[i] != null && OnHealthChanged != null)
+                UnsubscribeFromModel(slotData);
+                if (slotData.GameObject != null)
                 {
-                    _models[i].HealthChanged -= OnHealthChanged[i];
+                    Destroy(slotData.GameObject);
                 }
-                if (_models[i] != null && OnPAChanged != null)
+            }
+            _slotDataList.Clear();
+        }
+
+        private void OnSlotAdded(object sender, HUDSlotAddedEventArgs e)
+        {
+            CreateSlotUI(e.SlotIndex, e.AssignedThing);
+        }
+
+        private void OnSlotRemoved(object sender, HUDSlotRemovedEventArgs e)
+        {
+            RemoveSlotUI(e.RemovedThing);
+        }
+
+        private void CreateSlotUI(int slotIndex, IHUD model)
+        {
+            if (slotPrefab == null)
+            {
+                Debug.LogError("HUDPresenter: slotPrefab is not assigned!");
+                return;
+            }
+            if (slotContainer == null)
+            {
+                Debug.LogError("HUDPresenter: slotContainer is not assigned!");
+                return;
+            }
+            if (model == null)
+            {
+                Debug.LogError("HUDPresenter: model is null!");
+                return;
+            }
+
+            // Instantiate UI element
+            GameObject slotObj = Instantiate(slotPrefab, slotContainer);
+            TMP_Text text = slotObj.GetComponentInChildren<TMP_Text>();
+
+            // Create slot data with cached event handlers
+            var slotData = new SlotData
+            {
+                Model = model,
+                Text = text,
+                GameObject = slotObj
+            };
+
+            // Create and cache event handlers for this specific slot
+            slotData.OnHealthChanged = (s, e) => UpdateSlotDisplay(slotData);
+            slotData.OnPAChanged = (s, e) => UpdateSlotDisplay(slotData);
+
+            // Subscribe to model events
+            model.HealthChanged += slotData.OnHealthChanged;
+            model.PAProgressChanged += slotData.OnPAChanged;
+
+            _slotDataList.Add(slotData);
+
+            // Initial display update
+            UpdateSlotDisplay(slotData);
+
+            Debug.Log($"HUDPresenter: Created slot {slotIndex} for {model.GetType().Name}");
+        }
+
+        private void RemoveSlotUI(IHUD model)
+        {
+            var slotData = _slotDataList.Find(s => s.Model == model);
+            if (slotData != null)
+            {
+                UnsubscribeFromModel(slotData);
+
+                if (slotData.GameObject != null)
                 {
-                    _models[i].PAProgressChanged -= OnPAChanged[i];
+                    Destroy(slotData.GameObject);
                 }
+
+                _slotDataList.Remove(slotData);
+                Debug.Log($"HUDPresenter: Removed slot for {model.GetType().Name}");
             }
         }
 
-        // Called by HUDModel when a slot changes
-        private void OnHUDSlotChanged(object sender, HUDSlotChangedEventArgs e)
+        private void UnsubscribeFromModel(SlotData slotData)
         {
-            SetSlot(e.SlotIndex, e.AssignedThing);
-        }
-
-        public void SetSlot(int slot, IHUD model)
-        {
-            int idx = slot - 1;
-            if (idx < 0 || idx >= slotTexts.Length) return;
-
-            // Unsubscribe previous model safely
-            if (_models[idx] != null && OnHealthChanged != null)
+            if (slotData.Model != null)
             {
-                _models[idx].HealthChanged -= OnHealthChanged[idx];
-                _models[idx].PAProgressChanged -= OnPAChanged[idx];
-            }
-
-            _models[idx] = model;
-
-            if (model != null)
-            {
-                // Subscribe the cached delegates
-                if (OnHealthChanged != null)
-                {
-                    model.HealthChanged += OnHealthChanged[idx];
-                    model.PAProgressChanged += OnPAChanged[idx];
-                }
-
-                // Immediately update UI for this slot
-                UpdateSlot(idx);
-            }
-            else
-            {
-                // Clear UI when slot is empty
-                slotTexts[idx].text = "Empty";
+                if (slotData.OnHealthChanged != null)
+                    slotData.Model.HealthChanged -= slotData.OnHealthChanged;
+                if (slotData.OnPAChanged != null)
+                    slotData.Model.PAProgressChanged -= slotData.OnPAChanged;
             }
         }
 
-        private void UpdateSlot(int idx)
+        private void UpdateSlotDisplay(SlotData slotData)
         {
-            var model = _models[idx];
-            if (model != null && slotTexts != null && idx >= 0 && idx < slotTexts.Length)
-            {
-                slotTexts[idx].text = $"HP: {model.Health:0} \n PA: {model.PAProgress:P0}";
-            }
-            else if (slotTexts != null && idx >= 0 && idx < slotTexts.Length)
-            {
-                slotTexts[idx].text = "Empty";
-            }
+            if (slotData.Text == null || slotData.Model == null) return;
+
+            slotData.Text.text = $"HP: {slotData.Model.Health:F0} | PA: {slotData.Model.PAProgress * 100:F0}%";
         }
     }
 }
