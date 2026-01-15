@@ -14,7 +14,6 @@ namespace Assets.Scripts.Presenters
         [SerializeField] private float automatedAttackInterval = 0.1f;
 
         private readonly Dictionary<ColtBullet, ColtBulletPresenter> _bulletPresenterMap = new Dictionary<ColtBullet, ColtBulletPresenter>(Colt.TOTAL_BULLETS_SIZE);
-        private bool _poolInitialized = false;
 
         public float ColtRotationSpeed => coltRotationSpeed;
         public float AutomatedAttackInterval => automatedAttackInterval;
@@ -22,12 +21,17 @@ namespace Assets.Scripts.Presenters
         protected override void Awake()
         {
             base.Awake();
-            Model = new Colt();
+            
+            // Only create a new model if one doesn't exist (for backwards compatibility with non-command spawning)
+            if (Model == null)
+            {
+                Model = new Colt();
+            }
             
             // Override the base class attackInterval with Colt's specific interval
             attackInterval = automatedAttackInterval;
             
-            Debug.Log($"Colt AutomatedAttackInterval: {automatedAttackInterval}");
+            Debug.Log($"ColtPresenter Awake: AutomatedAttackInterval: {automatedAttackInterval}, IsLocalPlayer: {IsLocalPlayer}");
         }
 
         protected override IMovementStrategy CreateNonLocalMovementStrategy()
@@ -37,7 +41,7 @@ namespace Assets.Scripts.Presenters
 
         protected override IAttackStrategy CreateNonLocalAttackStrategy()
         {
-            Debug.Log($"Creating AutomatedAttackStrategy with interval: {automatedAttackInterval}");
+            Debug.Log($"ColtPresenter: Creating AutomatedAttackStrategy with interval: {automatedAttackInterval}");
             return new AutomatedAttackStrategy(automatedAttackInterval);
         }
 
@@ -56,52 +60,80 @@ namespace Assets.Scripts.Presenters
                 colt.ColtFired -= OnColtFired; // defensive
                 colt.ColtFired += OnColtFired;
 
-                // Only create the pool once at the beginning
-                if (!_poolInitialized)
-                {
-                    if (coltBulletPrefab == null)
-                    {
-                        return;
-                    }
-
-                    var bullets = colt.BulletPool;
-                    if (bullets == null)
-                    {
-                        return;
-                    }
-
-                    // instantiate exactly the number of presenters required as children of this ColtPresenter
-                    for (int i = 0; i < bullets.Count; i++)
-                    {
-                        var modelBullet = bullets[i];
-
-                        // Instantiate as child of this ColtPresenter transform
-                        GameObject bulletGO = Instantiate(coltBulletPrefab, transform);
-                        bulletGO.transform.localPosition = Vector3.zero;
-                        bulletGO.transform.localRotation = Quaternion.identity;
-                        bulletGO.SetActive(false);
-
-                        ColtBulletPresenter bulletPresenter = bulletGO.GetComponent<ColtBulletPresenter>();
-
-                    
-
-                        // assign model instance (presenter will subscribe but remain inactive until fired)
-                        bulletPresenter.Model = modelBullet;
-                        _bulletPresenterMap[modelBullet] = bulletPresenter;
-                    }
-
-                    _poolInitialized = true;
-                }
+                // Initialize bullet pool presenters
+                InitializeBulletPool(colt);
             }
         }
 
+        private void InitializeBulletPool(Colt colt)
+        {
+            if (coltBulletPrefab == null)
+            {
+                Debug.LogError("ColtPresenter: coltBulletPrefab is not assigned!");
+                return;
+            }
 
-        // updated this fot the pooling system
+            var bullets = colt.BulletPool;
+            if (bullets == null)
+            {
+                Debug.LogError("ColtPresenter: BulletPool is null!");
+                return;
+            }
+
+            // Clear existing map in case we're reinitializing
+            _bulletPresenterMap.Clear();
+
+            // Destroy any existing bullet GameObjects (from previous model)
+            foreach (Transform child in transform)
+            {
+                if (child.GetComponent<ColtBulletPresenter>() != null)
+                {
+                    Destroy(child.gameObject);
+                }
+            }
+
+            // Create presenters for all bullets in the pool
+            for (int i = 0; i < bullets.Count; i++)
+            {
+                var modelBullet = bullets[i];
+
+                // Instantiate as child of this ColtPresenter transform
+                GameObject bulletGO = Instantiate(coltBulletPrefab, transform);
+                bulletGO.transform.localPosition = Vector3.zero;
+                bulletGO.transform.localRotation = Quaternion.identity;
+                bulletGO.SetActive(false);
+
+                ColtBulletPresenter bulletPresenter = bulletGO.GetComponent<ColtBulletPresenter>();
+
+                if (bulletPresenter == null)
+                {
+                    Debug.LogError($"ColtPresenter: Bullet prefab is missing ColtBulletPresenter component!");
+                    Destroy(bulletGO);
+                    continue;
+                }
+
+                // Assign model instance (presenter will subscribe but remain inactive until fired)
+                bulletPresenter.Model = modelBullet;
+                _bulletPresenterMap[modelBullet] = bulletPresenter;
+            }
+
+            Debug.Log($"ColtPresenter: Initialized bullet pool with {_bulletPresenterMap.Count} bullet presenters for ModelID={colt.ModelID}");
+        }
+
         protected override void OnDestroy()
         {
             if (Model is Colt colt)
             {
                 colt.ColtFired -= OnColtFired;
+            }
+
+            // Cleanup bullet presenters
+            foreach (var kvp in _bulletPresenterMap)
+            {
+                if (kvp.Value != null && kvp.Value.gameObject != null)
+                {
+                    Destroy(kvp.Value.gameObject);
+                }
             }
 
             _bulletPresenterMap.Clear();
@@ -113,16 +145,19 @@ namespace Assets.Scripts.Presenters
         {
             if (e?.Bullet == null)
             {
+                Debug.LogWarning("ColtPresenter: ColtBulletEventArgs or Bullet is null!");
                 return;
             }
 
             if (!_bulletPresenterMap.TryGetValue(e.Bullet, out ColtBulletPresenter bulletPresenter))
             {
+                Debug.LogError($"ColtPresenter: Bullet not found in presenter map! Map has {_bulletPresenterMap.Count} entries, Model has {((Colt)Model).BulletPool.Count} bullets");
                 return;
             }
 
             if (bulletPresenter == null)
             {
+                Debug.LogError("ColtPresenter: BulletPresenter in map is null!");
                 return;
             }
 
@@ -130,13 +165,13 @@ namespace Assets.Scripts.Presenters
             Vector3 spawnPosition = transform.position + transform.forward * 1.5f;
             Quaternion spawnRotation = transform.rotation;
 
-
             // Initialize model FIRST because the presenter uses the model's data in its ActivateBullet
             bulletPresenter.Model.Initialize(spawnPosition, transform.forward, Model);
 
-            // THEN activate the presenter GameObject and position it becaues the presenter uses the model's position in its Update
+            // THEN activate the presenter GameObject and position it
             bulletPresenter.ActivateBullet(spawnPosition, spawnRotation);
 
+            Debug.Log($"ColtPresenter: Fired bullet from {transform.position}");
         }
     }
 }

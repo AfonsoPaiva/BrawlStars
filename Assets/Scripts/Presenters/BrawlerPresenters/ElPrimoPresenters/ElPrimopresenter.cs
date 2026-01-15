@@ -17,7 +17,12 @@ namespace Assets.Scripts.Presenters
         protected override void Awake()
         {
             base.Awake();
-            Model = new ElPrimo();
+            
+            // Only create a new model if one doesn't exist (for backwards compatibility with non-command spawning)
+            if (Model == null)
+            {
+                Model = new ElPrimo();
+            }
         }
 
      

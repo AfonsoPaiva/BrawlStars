@@ -1556,8 +1556,8 @@ RectTransform:
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0.5, y: 0.5}
   m_AnchorMax: {x: 0.5, y: 0.5}
-  m_AnchoredPosition: {x: 405, y: 115}
-  m_SizeDelta: {x: 100, y: 0}
+  m_AnchoredPosition: {x: 441, y: 184}
+  m_SizeDelta: {x: 0, y: 0}
   m_Pivot: {x: 0.5, y: 0.5}
 --- !u!114 &49077226
 MonoBehaviour:
@@ -1571,8 +1571,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 3245ec927659c4140ac4f8d17403cc18, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  m_HorizontalFit: 0
-  m_VerticalFit: 2
+  m_HorizontalFit: 2
+  m_VerticalFit: 0
 --- !u!114 &49077227
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -12856,8 +12856,8 @@ MonoBehaviour:
   spawnPoints:
   - {fileID: 1774531744}
   - {fileID: 2081965978}
-  - {fileID: 1171444336}
-  localPlayerHUD: {fileID: 0}
+  enableReplay: 1
+  replayKey: 114
 --- !u!4 &523136769
 Transform:
   m_ObjectHideFlags: 0
@@ -31024,7 +31024,7 @@ GameObject:
   m_Component:
   - component: {fileID: 1171444336}
   m_Layer: 0
-  m_Name: spawnpoint2 (1)
+  m_Name: spawnpoint3
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0

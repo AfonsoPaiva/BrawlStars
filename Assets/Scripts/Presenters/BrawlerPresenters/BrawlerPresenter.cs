@@ -28,6 +28,7 @@ namespace Assets.Scripts.Presenters
         private IMovementStrategy _movementStrategy;
         private IAttackStrategy _attack_strategy;
         private PlayerInput _playerInput;
+        private bool _subscribedToDied = false;
 
         public float MoveSpeed => moveSpeed;
         public float RotationSpeed => rotationSpeed;
@@ -58,6 +59,7 @@ namespace Assets.Scripts.Presenters
             if (previousModel != null)
             {
                 previousModel.Died -= OnBrawlerDied;
+                _subscribedToDied = false;
 
                 // If previous model was assigned to HUD, clear its slot so reassignment won't leave stale entries
                 if (previousModel is IHUD prevHud)
@@ -72,10 +74,11 @@ namespace Assets.Scripts.Presenters
                 }
             }
 
-            // Subscribe to new model
-            if (Model != null)
+            // Subscribe to new model (only once)
+            if (Model != null && !_subscribedToDied)
             {
                 Model.Died += OnBrawlerDied;
+                _subscribedToDied = true;
             }
         }
 
@@ -86,12 +89,7 @@ namespace Assets.Scripts.Presenters
             // Initialize strategies
             InitializeStrategies();
 
-            // Subscribe to death event if model is already set
-            if (Model != null)
-            {
-                Model.Died += OnBrawlerDied;
-                // HUD registration is handled by PD3StartGamePresenter - removed from here to avoid duplicates
-            }
+            // NOTE: Removed duplicate subscription - ModelSetInitialization handles it
         }
 
         // Public method to force initialize strategies (called by game presenter)
@@ -167,16 +165,17 @@ namespace Assets.Scripts.Presenters
 
         private void OnBrawlerDied(object sender, System.EventArgs e)
         {
-            Debug.Log($"{Model.GetType().Name} died! Destroying GameObject.");
+            Debug.Log($"{Model?.GetType().Name} (ModelID={Model?.ModelID}) died! Destroying GameObject: {gameObject.name}");
             Destroy(gameObject);
         }
 
         protected override void OnDestroy()
         {
             // Unsubscribe from model events
-            if (Model != null)
+            if (Model != null && _subscribedToDied)
             {
                 Model.Died -= OnBrawlerDied;
+                _subscribedToDied = false;
             }
 
             // Cleanup strategy subscriptions
