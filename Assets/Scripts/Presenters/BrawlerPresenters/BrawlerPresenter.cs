@@ -54,6 +54,10 @@ namespace Assets.Scripts.Presenters
         [SerializeField] protected float attackInterval = 0.5f;
 
         [Header("Health Bar Settings")]
+        [SerializeField] private bool useCanvasHealthBar = true; // NEW: Toggle between implementations
+        [SerializeField] private CanvasHealthBarPresenter canvasHealthBar; // NEW: Canvas-based healthbar
+        
+        // OLD: UIDocument-based healthbar (deprecated)
         [SerializeField] private VisualTreeAsset healthBarTemplate;
         [SerializeField] private UIDocument _hudDOcument;
         [SerializeField] private Transform healthBarAnchor;
@@ -66,7 +70,7 @@ namespace Assets.Scripts.Presenters
 
         //Recording fields
         private float _recordTimer = 0f;
-        private const float RECORD_INTERVAL = 0.05f; // Record 20 times per second
+        private const float RECORD_INTERVAL = 0.05f;
         private Vector3 _lastRecordedPos;
         private Quaternion _lastRecordedRot;
 
@@ -74,10 +78,7 @@ namespace Assets.Scripts.Presenters
         public float RotationSpeed => rotationSpeed;
         public float AttackInterval => attackInterval;
 
-        // Helper: Allows other scripts to check if this is "The Player"
         public bool IsLocalPlayer => movementType == MovementStrategyType.PlayerInput;
-        
-        // NEW: Property to check attack type
         public AttackExecutionType AttackType => attackType;
 
         protected override void Awake()
@@ -116,8 +117,37 @@ namespace Assets.Scripts.Presenters
 
         protected void Start()
         {
-            ADDHB(_hudDOcument, healthBarTemplate);
+            // NEW: Choose which healthbar implementation to use
+            if (useCanvasHealthBar)
+            {
+                InitializeCanvasHealthBar();
+            }
+            else
+            {
+                ADDHB(_hudDOcument, healthBarTemplate);
+            }
+            
             InitializeStrategies();
+        }
+
+        // NEW: Initialize Canvas-based healthbar
+        private void InitializeCanvasHealthBar()
+        {
+            if (canvasHealthBar == null)
+            {
+                Debug.LogWarning($"[{name}] Canvas HealthBar is not assigned! Searching in children...");
+                canvasHealthBar = GetComponentInChildren<CanvasHealthBarPresenter>();
+            }
+
+            if (canvasHealthBar != null && Model != null)
+            {
+                canvasHealthBar.Configure(Model);
+                Debug.Log($"[{name}] Canvas health bar successfully configured");
+            }
+            else
+            {
+                Debug.LogError($"[{name}] Failed to initialize Canvas HealthBar!");
+            }
         }
 
         public void ForceInitializeStrategies()
@@ -246,9 +276,9 @@ namespace Assets.Scripts.Presenters
             InitializeStrategies();
         }
 
+        // OLD: UIDocument-based healthbar initialization (kept for backward compatibility)
         public void ADDHB(UIDocument hudDocument, VisualTreeAsset HBxml)
         {
-       
             if (hudDocument == null)
             {
                 Debug.LogWarning($"[{name}] UIDocument is not assigned! Health bar will not be created. Please assign '_hudDOcument' in Inspector.");
@@ -273,7 +303,6 @@ namespace Assets.Scripts.Presenters
                 return;
             }
 
-            // All dependencies are valid, create the health bar
             _hudDOcument = hudDocument;
             VisualElement cloneRoot = HBxml.CloneTree();
             _healthBarPresenter = new Healthbars.HealthBarPresenter(Model, healthBarAnchor, cloneRoot, _hudDOcument);
@@ -302,18 +331,13 @@ namespace Assets.Scripts.Presenters
         protected override void Update()
         {
             base.Update();
-
-            // 1. Handle normal game logic
             HandleMovement();
             HandleAttack();
-
-            // 2. Handle Replay Recording
             RecordReplayMovement();
         }
 
         private void RecordReplayMovement()
         {
-            // Access the history singleton safely
             var gamePresenter = PD3StartGamePresenter.Instance;
             if (gamePresenter == null) return;
 
@@ -324,16 +348,12 @@ namespace Assets.Scripts.Presenters
 
             if (_recordTimer >= RECORD_INTERVAL)
             {
-                // Only record if we actually moved to save memory
                 bool hasMoved = Vector3.Distance(transform.position, _lastRecordedPos) > 0.01f;
                 bool hasRotated = Quaternion.Angle(transform.rotation, _lastRecordedRot) > 1.0f;
 
                 if (hasMoved || hasRotated)
                 {
-                    // Create the command
                     var moveCmd = new BrawlerMoveCommand(Model.ModelID, transform.position, transform.rotation);
-
-                    // Execute immediately so it gets added to history
                     history.ExecuteCommand(moveCmd);
 
                     _lastRecordedPos = transform.position;
@@ -343,7 +363,14 @@ namespace Assets.Scripts.Presenters
             }
         }
 
-        private void LateUpdate() => _healthBarPresenter?.UpdatePosition();
+        private void LateUpdate()
+        {
+            // Only update UIDocument healthbar position if using old system
+            if (!useCanvasHealthBar)
+            {
+                _healthBarPresenter?.UpdatePosition();
+            }
+        }
 
         protected virtual void HandleMovement()
         {
@@ -354,7 +381,6 @@ namespace Assets.Scripts.Presenters
         {
             float paProgress = 0f;
 
-            // Handle casting to get Progress for the HUD
             if (_attack_strategy is AutomatedAttackStrategy automatedStrategy)
             {
                 automatedStrategy.UpdateCooldown(Time.deltaTime);

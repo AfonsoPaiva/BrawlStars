@@ -21,12 +21,14 @@ namespace Assets.Scripts.Models
         // Private fields
         private bool _isAttacking = false;
         public BrawlerHPFSM HPFSM { get; private set; }
+        public BrawlerPAFSM PAFSM { get; private set; }
 
         // Constructor
         public Colt()
         {
             Health = 10;
             HPFSM = new ColtHPFSM(this);
+            PAFSM = new ColtPAFSM(this);
 
             // initialize pool 
             _bulletPool = new List<ColtBullet>(TOTAL_BULLETS_SIZE);
@@ -56,6 +58,7 @@ namespace Assets.Scripts.Models
         {
             base.FixedUpdate();
             HPFSM?.FixedUpdate(Time.fixedDeltaTime);
+            PAFSM?.FixedUpdate(Time.fixedDeltaTime);
         }
 
         public ColtBullet TryAcquireBullet()
@@ -107,6 +110,12 @@ namespace Assets.Scripts.Models
                 return;
             }
 
+            // Check if PA is ready using FSM
+            if (PAFSM.CurrentState != PAFSM.ReadyState)
+            {
+                return;
+            }
+
             _isAttacking = true;
 
             ColtBullet bullet = TryAcquireBullet();
@@ -116,6 +125,9 @@ namespace Assets.Scripts.Models
             {
                 //for the presenter to see where to spawn the bullet
                 ColtFired?.Invoke(this, new ColtBulletEventArgs(bullet));
+                
+                // Transition PA to cooldown state after attacking
+                PAFSM.TransitionTo(PAFSM.CooldownState);
             }
 
             _isAttacking = false;
