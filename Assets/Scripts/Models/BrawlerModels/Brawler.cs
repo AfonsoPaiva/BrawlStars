@@ -11,6 +11,25 @@ namespace Assets.Scripts.Models
         public const float HEALTH_REGEN_PERCENT = 0.13f; // 13% per second
         public const float COOLDOWN_DURATION = 3f;
 
+        // --- NEW: Damage Strategy Support ---
+        private IDamageStrategy _damageStrategy;
+
+        public void SetDamageStrategy(IDamageStrategy strategy)
+        {
+            _damageStrategy = strategy;
+        }
+
+        // Optional: Expose logic to calculate damage using the stored strategy
+        public float CalculateDamage(IBrawler target, Vector3 position, IBullet bullet)
+        {
+            if (_damageStrategy != null)
+            {
+                return _damageStrategy.CalculateDamage(target, position, bullet);
+            }
+            return bullet?.Damage ?? 0f; // Default fallback
+        }
+        // ------------------------------------
+
         // Private fields
         private float _health;
         public float Health
@@ -23,7 +42,7 @@ namespace Assets.Scripts.Models
                     _health = Mathf.Clamp(value, 0, MAXHEALTH);
                     OnPropertyChanged(nameof(Health));
                     HealthChanged?.Invoke(this, EventArgs.Empty);
-                    
+
                     // Check for death
                     if (_health <= 0)
                     {

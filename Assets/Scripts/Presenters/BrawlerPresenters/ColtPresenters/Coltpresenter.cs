@@ -34,12 +34,12 @@ namespace Assets.Scripts.Presenters
             Debug.Log($"ColtPresenter Awake: AutomatedAttackInterval: {automatedAttackInterval}, IsLocalPlayer: {IsLocalPlayer}");
         }
 
-        protected override IMovementStrategy CreateNonLocalMovementStrategy()
+        protected virtual IMovementStrategy CreateNonLocalMovementStrategy()
         {
             return new RotationalMovementStrategy(coltRotationSpeed);
         }
 
-        protected override IAttackStrategy CreateNonLocalAttackStrategy()
+        protected virtual IAttackStrategy CreateNonLocalAttackStrategy()
         {
             Debug.Log($"ColtPresenter: Creating AutomatedAttackStrategy with interval: {automatedAttackInterval}");
             return new AutomatedAttackStrategy(automatedAttackInterval);

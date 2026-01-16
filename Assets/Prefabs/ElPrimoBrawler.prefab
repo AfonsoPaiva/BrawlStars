@@ -31,7 +31,7 @@ Transform:
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: -1.289, y: 1.727, z: 0}
-  m_LocalScale: {x: 1, y: 2.5172, z: 1}
+  m_LocalScale: {x: 1.1906487, y: 1.0655308, z: 1.3155437}
   m_ConstrainProportionsScale: 0
   m_Children:
   - {fileID: 9211795859205748526}
@@ -68,7 +68,7 @@ MeshRenderer:
   m_RenderingLayerMask: 1
   m_RendererPriority: 0
   m_Materials:
-  - {fileID: 2100000, guid: 31321ba15b8f8eb4c954353edc038b1d, type: 2}
+  - {fileID: 2100000, guid: 618ce79fef3b2f2439c4868fee377cd8, type: 2}
   m_StaticBatchInfo:
     firstSubMesh: 0
     subMeshCount: 0
@@ -150,15 +150,44 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 416f9da773dca2f4085e2410efd21305, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  movementType: 1
+  attackType: 2
+  damageType: 0
   moveSpeed: 5
   rotationSpeed: 10
-  playerInput: {fileID: 0}
-  isLocalPlayer: 0
+  attackInterval: 0.5
   healthBarTemplate: {fileID: 9197481963319205126, guid: 81c545f64f363624ba2a605634eb3417, type: 3}
   _hudDOcument: {fileID: 6488479420021921868}
   healthBarAnchor: {fileID: 9211795859205748526}
   elPrimoRotationSpeed: 180
   automatedAttackInterval: 1
+  dashDistance: 5
+  dashDuration: 0.3
+  dashCurve:
+    serializedVersion: 2
+    m_Curve:
+    - serializedVersion: 3
+      time: 0
+      value: 0
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    - serializedVersion: 3
+      time: 1
+      value: 1
+      inSlope: 0
+      outSlope: 0
+      tangentMode: 0
+      weightedMode: 0
+      inWeight: 0
+      outWeight: 0
+    m_PreInfinity: 2
+    m_PostInfinity: 2
+    m_RotationOrder: 4
+  dashKey: 304
 --- !u!1 &5093822649376607081
 GameObject:
   m_ObjectHideFlags: 0
