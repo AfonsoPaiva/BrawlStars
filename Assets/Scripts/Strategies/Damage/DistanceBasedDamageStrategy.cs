@@ -1,5 +1,5 @@
 using Assets.Scripts.Interfaces;
-using UnityEngine;
+using Assets.Scripts.Common;
 
 namespace Assets.Scripts.Strategies
 {
@@ -14,13 +14,19 @@ namespace Assets.Scripts.Strategies
             _minDamageMultiplier = minDamageMultiplier;
         }
 
-        public override float CalculateDamage(IBrawler target, Vector3 targetPosition, IBullet bullet)
+        public override float CalculateDamage(IBrawler target, SerializableVector3 targetPosition, IBullet bullet)
         {
             if (target == null || bullet == null) return 0f;
 
-            float distance = Vector3.Distance(bullet.Position, targetPosition);
-            float t = Mathf.Clamp01(distance / _maxRange);
-            float multiplier = Mathf.Lerp(1f, _minDamageMultiplier, t);
+            // Calculate distance using SerializableVector3
+            SerializableVector3 bulletPos = bullet.Position;
+            float dx = bulletPos.X - targetPosition.X;
+            float dy = bulletPos.Y - targetPosition.Y;
+            float dz = bulletPos.Z - targetPosition.Z;
+            float distance = (float)System.Math.Sqrt(dx * dx + dy * dy + dz * dz);
+
+            float t = MathHelper.Clamp01(distance / _maxRange);
+            float multiplier = MathHelper.Lerp(1f, _minDamageMultiplier, t);
             return bullet.Damage * multiplier;
         }
     }

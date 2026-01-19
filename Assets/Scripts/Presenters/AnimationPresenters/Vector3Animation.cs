@@ -1,14 +1,10 @@
 ﻿using System;
 using UnityEngine;
 using Assets.Scripts.Interfaces;
-using Assets.Scripts.Models;
+using Assets.Scripts.Common;
 
 namespace Assets.Scripts.Presenters
 {
-    /// <summary>
-    /// Concrete animation implementation in the Presenter layer
-    /// Animates Unity Vector3 but exposes Model-friendly SerializableVector3
-    /// </summary>
     public class Vector3Animation : IAnimation<SerializableVector3>
     {
         public event EventHandler AnimationEnded;
@@ -58,11 +54,7 @@ namespace Assets.Scripts.Presenters
             CurrentUnityValue = Vector3.Lerp(_startValue, _endValue, t);
 
             // Convert to SerializableVector3 for Model layer
-            var serializableValue = new SerializableVector3(
-                CurrentUnityValue.x,
-                CurrentUnityValue.y,
-                CurrentUnityValue.z
-            );
+            var serializableValue = VectorConverter.ToSerializable(CurrentUnityValue);
 
             // Raise ValueChanged event
             ValueChanged?.Invoke(this, new AnimationValueChangedEventArgs<SerializableVector3>(serializableValue, Progress));

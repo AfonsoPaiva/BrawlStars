@@ -1,10 +1,11 @@
 using UnityEngine;
+using Assets.Scripts.Common;
 
 namespace Assets.Scripts.Interfaces
 {
     public interface IBullet
     {
         float Damage { get; }
-        Vector3 Position { get; }
+        SerializableVector3 Position { get; }
     }
 }

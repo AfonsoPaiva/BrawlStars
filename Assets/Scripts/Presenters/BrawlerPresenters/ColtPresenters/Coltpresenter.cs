@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Assets.Scripts.Interfaces;
 using Assets.Scripts.Strategies;
+using Assets.Scripts.Common;
 
 namespace Assets.Scripts.Presenters
 {
@@ -165,10 +166,14 @@ namespace Assets.Scripts.Presenters
             Vector3 spawnPosition = transform.position + transform.forward * 1.5f;
             Quaternion spawnRotation = transform.rotation;
 
-            // Initialize model FIRST because the presenter uses the model's data in its ActivateBullet
-            bulletPresenter.Model.Initialize(spawnPosition, transform.forward, Model);
+            // Convert Unity Vector3 to SerializableVector3 for the Model layer
+            SerializableVector3 modelPosition = VectorConverter.ToSerializable(spawnPosition);
+            SerializableVector3 modelDirection = VectorConverter.ToSerializable(transform.forward);
 
-            // THEN activate the presenter GameObject and position it
+            // Initialize model FIRST with framework-agnostic types
+            bulletPresenter.Model.Initialize(modelPosition, modelDirection, Model);
+
+            // THEN activate the presenter GameObject and position it with Unity types
             bulletPresenter.ActivateBullet(spawnPosition, spawnRotation);
 
             Debug.Log($"ColtPresenter: Fired bullet from {transform.position}");

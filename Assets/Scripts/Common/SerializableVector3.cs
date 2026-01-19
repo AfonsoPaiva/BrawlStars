@@ -1,11 +1,7 @@
 ﻿using System;
 
-namespace Assets.Scripts.Models
+namespace Assets.Scripts.Common
 {
-    /// <summary>
-    /// Unity-independent 3D vector representation
-    /// Allows Model layer to work with 3D positions without UnityEngine dependency
-    /// </summary>
     [Serializable]
     public struct SerializableVector3
     {
@@ -52,6 +48,18 @@ namespace Assets.Scripts.Models
             return new SerializableVector3(a.X * scalar, a.Y * scalar, a.Z * scalar);
         }
 
+        public static bool operator ==(SerializableVector3 a, SerializableVector3 b)
+        {
+            return Math.Abs(a.X - b.X) < 0.00001f &&
+                   Math.Abs(a.Y - b.Y) < 0.00001f &&
+                   Math.Abs(a.Z - b.Z) < 0.00001f;
+        }
+
+        public static bool operator !=(SerializableVector3 a, SerializableVector3 b)
+        {
+            return !(a == b);
+        }
+
         public static SerializableVector3 Lerp(SerializableVector3 a, SerializableVector3 b, float t)
         {
             t = Math.Max(0f, Math.Min(1f, t)); // Clamp between 0 and 1
@@ -60,6 +68,18 @@ namespace Assets.Scripts.Models
                 a.Y + (b.Y - a.Y) * t,
                 a.Z + (b.Z - a.Z) * t
             );
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj is SerializableVector3 other)
+                return this == other;
+            return false;
+        }
+
+        public override int GetHashCode()
+        {
+            return X.GetHashCode() ^ Y.GetHashCode() ^ Z.GetHashCode();
         }
 
         public override string ToString()

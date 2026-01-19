@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
-using UnityEngine;
+
 
 namespace Assets.Scripts.Models
 {
@@ -13,7 +13,6 @@ namespace Assets.Scripts.Models
 
         public override void OnEnter()
         {
-            UnityEngine.Debug.Log($"{Context.GetType().Name} is dead!");
         }
 
         public override void FixedUpdate(float fixedDeltaTime)

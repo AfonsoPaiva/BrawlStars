@@ -1,6 +1,7 @@
 ﻿using System.ComponentModel;
 using UnityEngine;
 using Assets.Scripts.Models;
+using Assets.Scripts.Common;
 
 
 
@@ -43,11 +44,16 @@ namespace Assets.Scripts.Presenters
 
         protected virtual void Update()
         {
+            GameTime.DeltaTime = Time.deltaTime;
+            GameTime.Time = Time.time;
+            
             Model?.Update();
         }
 
         protected virtual void FixedUpdate()
         {
+            GameTime.FixedDeltaTime = Time.fixedDeltaTime;
+            
             Model?.FixedUpdate();
         }
     }

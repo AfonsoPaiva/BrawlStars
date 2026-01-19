@@ -1,6 +1,5 @@
 ﻿using System;
-using UnityEngine;
-using Assets.Scripts.Models;
+using Assets.Scripts.Common;
 
 namespace Assets.Scripts.Models
 {
@@ -14,8 +13,8 @@ namespace Assets.Scripts.Models
         public const float BASE_DAMAGE = 15f;
 
         private float _timeToLive;
-        private Vector3 _position;
-        private Vector3 _direction;
+        private SerializableVector3 _position;
+        private SerializableVector3 _direction;
         private float _speed;
         private float _damage;
         private Brawler _owner;
@@ -33,12 +32,12 @@ namespace Assets.Scripts.Models
             }
         }
 
-        public Vector3 Position
+        public SerializableVector3 Position
         {
             get => _position;
             private set
             {
-                if (_position != value)
+                if (_position.X != value.X || _position.Y != value.Y || _position.Z != value.Z)
                 {
                     _position = value;
                     PositionChanged?.Invoke(this, EventArgs.Empty);
@@ -47,10 +46,10 @@ namespace Assets.Scripts.Models
             }
         }
 
-        public Vector3 Direction
+        public SerializableVector3 Direction
         {
             get => _direction;
-            set => _direction = value.normalized;
+            set => _direction = value.Normalized;
         }
 
         public float Speed
@@ -71,7 +70,7 @@ namespace Assets.Scripts.Models
             set => _owner = value;
         }
 
-        public void Initialize(Vector3 startPosition, Vector3 direction, Brawler owner = null)
+        public void Initialize(SerializableVector3 startPosition, SerializableVector3 direction, Brawler owner = null)
         {
             Position = startPosition;
             Direction = direction;
@@ -87,10 +86,10 @@ namespace Assets.Scripts.Models
 
             if (TimeToLive > 0)
             {
-                Vector3 oldPosition = Position;
-                Position += Direction * Speed * Time.deltaTime;
+                SerializableVector3 oldPosition = Position;
+                Position = Position + Direction * Speed * GameTime.DeltaTime;
 
-                TimeToLive -= Time.deltaTime;
+                TimeToLive -= GameTime.DeltaTime;
 
                 if (TimeToLive <= 0)
                 {

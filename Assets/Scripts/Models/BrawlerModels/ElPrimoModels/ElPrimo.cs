@@ -1,7 +1,7 @@
 using Assets.Scripts.Models;
 using Assets.Scripts.Interfaces;
 using System;
-using UnityEngine;
+using Assets.Scripts.Common;
 
 namespace Assets.Scripts.Models
 {
@@ -89,7 +89,7 @@ namespace Assets.Scripts.Models
             ElPrimoBullet bullet = new ElPrimoBullet();
             ElPrimoFired?.Invoke(this, new ElPrimoBulletEventArgs(bullet));
 
-            Debug.Log("ElPrimo dash completed, transitioning to PALoading state");
+
         }
 
         public override void PARequested()
@@ -112,7 +112,7 @@ namespace Assets.Scripts.Models
         public override void FixedUpdate()
         {
             base.FixedUpdate();
-            HPFSM?.FixedUpdate(Time.fixedDeltaTime);
+            HPFSM?.FixedUpdate(GameTime.FixedDeltaTime);
         }
     }
 

@@ -1,5 +1,4 @@
 ﻿using System.ComponentModel;
-using UnityEngine;
 
 namespace Assets.Scripts.Models
 {
@@ -17,7 +16,6 @@ namespace Assets.Scripts.Models
             // Set PA progress to 100% when ready
             Context.PAProgress = 1.0f;
 
-            Debug.Log($"{Context.GetType().Name} PA is ready!");
         }
 
         public override void OnExit()

@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel;
-using UnityEngine;
+using Assets.Scripts.Common;
+
 
 namespace Assets.Scripts.Models
 {
@@ -19,7 +20,6 @@ namespace Assets.Scripts.Models
             _lastHealth = Context.Health;
             Context.PropertyChanged += Context_PropertyChanged;
 
-            Debug.Log($"{Context.GetType().Name} PA on cooldown");
         }
 
         public override void OnExit()
@@ -59,7 +59,7 @@ namespace Assets.Scripts.Models
             _cooldownTimer += fixedDeltaTime;
 
             // Update PA progress based on cooldown
-            Context.PAProgress = Mathf.Clamp01(_cooldownTimer / PA_COOLDOWN_DURATION);
+            Context.PAProgress = MathHelper.Clamp01(_cooldownTimer / PA_COOLDOWN_DURATION);
 
             // After cooldown duration, transition to ready
             if (_cooldownTimer >= PA_COOLDOWN_DURATION)

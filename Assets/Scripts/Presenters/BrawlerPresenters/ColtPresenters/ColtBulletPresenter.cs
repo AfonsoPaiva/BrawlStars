@@ -2,6 +2,7 @@
 using System.ComponentModel;
 using UnityEngine;
 using Assets.Scripts.Interfaces;
+using Assets.Scripts.Common;
 
 namespace Assets.Scripts.Presenters
 {
@@ -85,7 +86,8 @@ namespace Assets.Scripts.Presenters
         {
             if (Model != null && gameObject.activeInHierarchy)
             {
-                transform.position = Model.Position;
+                // Convert SerializableVector3 to Unity Vector3
+                transform.position = ToUnityVector3(Model.Position);
             }
         }
 
@@ -108,12 +110,25 @@ namespace Assets.Scripts.Presenters
             BrawlerPresenter targetPresenter = other.GetComponent<BrawlerPresenter>();
             if (targetPresenter != null && targetPresenter.Model != null)
             {
-                // Pass target's transform position from presenter to strategy
-                Model.DamageStrategy?.ApplyDamage(targetPresenter.Model, targetPresenter.transform.position, Model);
+                // Convert Unity Vector3 to SerializableVector3 for the Model layer
+                SerializableVector3 targetPosition = ToSerializableVector3(targetPresenter.transform.position);
+                
+                Model.DamageStrategy?.ApplyDamage(targetPresenter.Model, targetPosition, Model);
 
                 // notify model it was hit; model raises Expired which the Colt model will handle to release.
                 Model.MarkExpiredByHit();
             }
+        }
+
+        // Helper methods for conversion between Unity and Model types
+        private Vector3 ToUnityVector3(SerializableVector3 sv3)
+        {
+            return new Vector3(sv3.X, sv3.Y, sv3.Z);
+        }
+
+        private SerializableVector3 ToSerializableVector3(Vector3 v3)
+        {
+            return new SerializableVector3(v3.x, v3.y, v3.z);
         }
     }
 }

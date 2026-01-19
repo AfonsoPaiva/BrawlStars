@@ -1,8 +1,9 @@
-﻿using Assets.Scripts.Models;
+﻿using Assets.Scripts.Common;
+using Assets.Scripts.Interfaces;
+using Assets.Scripts.Models;
+using Assets.Scripts.Strategies;
 using UnityEngine;
 using UnityEngine.InputSystem;
-using Assets.Scripts.Interfaces;
-using Assets.Scripts.Strategies;
 
 namespace Assets.Scripts.Presenters
 {

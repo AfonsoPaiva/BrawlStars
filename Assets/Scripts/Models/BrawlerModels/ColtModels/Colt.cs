@@ -1,7 +1,7 @@
 using NUnit.Framework;
 using System;
 using System.Collections.Generic;
-using UnityEngine;
+using Assets.Scripts.Common;
 
 namespace Assets.Scripts.Models
 {
@@ -57,8 +57,8 @@ namespace Assets.Scripts.Models
         public override void FixedUpdate()
         {
             base.FixedUpdate();
-            HPFSM?.FixedUpdate(Time.fixedDeltaTime);
-            PAFSM?.FixedUpdate(Time.fixedDeltaTime);
+            HPFSM?.FixedUpdate(GameTime.FixedDeltaTime);
+            PAFSM?.FixedUpdate(GameTime.FixedDeltaTime);
         }
 
         public ColtBullet TryAcquireBullet()

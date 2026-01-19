@@ -1,13 +1,13 @@
 using Assets.Scripts.Interfaces;
-using UnityEngine;
+using Assets.Scripts.Common;
 
 namespace Assets.Scripts.Strategies
-{
+{   
     public class StandardDamageStrategy : DamageStrategyBase
     {
-        public override float CalculateDamage(IBrawler target, Vector3 targetPosition, IBullet bullet)
+        public override float CalculateDamage(IBrawler target, SerializableVector3 targetPosition, IBullet bullet)
         {
-            return bullet.Damage;
+            return bullet?.Damage ?? 0f;
         }
     }
 }

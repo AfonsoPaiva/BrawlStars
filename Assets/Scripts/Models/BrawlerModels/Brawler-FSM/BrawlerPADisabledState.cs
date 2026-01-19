@@ -1,6 +1,4 @@
-﻿using UnityEngine;
-
-namespace Assets.Scripts.Models
+﻿namespace Assets.Scripts.Models
 {
     public class BrawlerPADisabledState : BrawlerPABaseState
     {
@@ -9,7 +7,6 @@ namespace Assets.Scripts.Models
         public override void OnEnter()
         {
             Context.PAProgress = 0f;
-            Debug.Log($"{Context.GetType().Name} PA is disabled (dead)!");
         }
 
         public override void FixedUpdate(float fixedDeltaTime)

@@ -1,6 +1,6 @@
 using System;
-using UnityEngine;
 using Assets.Scripts.Interfaces;
+using Assets.Scripts.Common;
 
 namespace Assets.Scripts.Models
 {
@@ -20,7 +20,7 @@ namespace Assets.Scripts.Models
         }
 
         // Optional: Expose logic to calculate damage using the stored strategy
-        public float CalculateDamage(IBrawler target, Vector3 position, IBullet bullet)
+        public float CalculateDamage(IBrawler target, SerializableVector3 position, IBullet bullet)
         {
             if (_damageStrategy != null)
             {
@@ -39,7 +39,7 @@ namespace Assets.Scripts.Models
             {
                 if (_health != value)
                 {
-                    _health = Mathf.Clamp(value, 0, MAXHEALTH);
+                    _health = MathHelper.Clamp(value, 0, MAXHEALTH);
                     OnPropertyChanged(nameof(Health));
                     HealthChanged?.Invoke(this, EventArgs.Empty);
 
@@ -54,7 +54,7 @@ namespace Assets.Scripts.Models
 
         public event EventHandler HealthChanged;
         public event EventHandler Died;
-        public float HealthProgress => Mathf.Clamp01(_health / MAXHEALTH);
+        public float HealthProgress => MathHelper.Clamp01(_health / MAXHEALTH);
 
         // HUD: PA progress and display name
         private float _paProgress;
@@ -63,8 +63,8 @@ namespace Assets.Scripts.Models
             get => _paProgress;
             set
             {
-                float clamped = Mathf.Clamp01(value);
-                if (!Mathf.Approximately(_paProgress, clamped))
+                float clamped = MathHelper.Clamp01(value);
+                if (!MathHelper.Approximately(_paProgress, clamped))
                 {
                     _paProgress = clamped;
                     OnPropertyChanged(nameof(PAProgress));
@@ -84,7 +84,7 @@ namespace Assets.Scripts.Models
         {
             if (Health < MAXHEALTH)
             {
-                Health = Mathf.Min(MAXHEALTH, Health + (MAXHEALTH * HEALTH_REGEN_PERCENT * deltaTime));
+                Health = MathHelper.Min(MAXHEALTH, Health + (MAXHEALTH * HEALTH_REGEN_PERCENT * deltaTime));
             }
         }
 
