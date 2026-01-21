@@ -379,21 +379,18 @@ namespace Assets.Scripts.Presenters
 
         protected virtual void HandleAttack()
         {
-            float paProgress = 0f;
+            // Update cooldown through base class interface
+            if (_attack_strategy is AttackStrategyBase attackStrategy)
+            {
+                attackStrategy.UpdateCooldown(Time.deltaTime);
 
-            if (_attack_strategy is AutomatedAttackStrategy automatedStrategy)
-            {
-                automatedStrategy.UpdateCooldown(Time.deltaTime);
-                paProgress = automatedStrategy.PAProgress;
-            }
-            else if (_attack_strategy is InputSystemAttackStrategy inputAttackStrategy)
-            {
-                inputAttackStrategy.UpdateCooldown(Time.deltaTime);
-                paProgress = inputAttackStrategy.PAProgress;
+                if (Model != null)
+                {
+                    Model.PAProgress = attackStrategy.PAProgress;
+                }
             }
 
-            if (Model != null) Model.PAProgress = paProgress;
-
+            // Execute attack if ready
             if (_attack_strategy != null && _attack_strategy.CanExecute())
             {
                 Model?.PARequested();

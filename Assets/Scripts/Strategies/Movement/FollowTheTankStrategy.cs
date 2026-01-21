@@ -4,9 +4,9 @@ namespace Assets.Scripts.Strategies
 {
     public class FollowTheTankStrategy : MovementStrategyBase
     {
-        private Transform _tank; // The player brawler to follow
-        private float _followDistance = 2.0f; // How far behind the tank to stand
-        private float _stopThreshold = 0.5f;  // Accuracy tolerance
+        private Transform _tank;
+        private float _followDistance = 2.0f;
+        private float _stopThreshold = 0.5f;
 
         public FollowTheTankStrategy(Transform tank)
         {
@@ -15,44 +15,28 @@ namespace Assets.Scripts.Strategies
 
         public override void Execute(Transform transform, float moveSpeed, float rotationSpeed, float deltaTime)
         {
-            if (_tank == null) return;
+            if (_tank == null)
+            {
+                _moveDirection = Vector2.zero; // Stop moving if target is lost
+                return;
+            }
 
-            // 1. Calculate the target position: Behind the tank
-            // Formula: TankPosition - (TankForward * Distance)
             Vector3 targetPosition = _tank.position - (_tank.forward * _followDistance);
-
-            // 2. Calculate distance to that target spot
             float distanceToTarget = Vector3.Distance(transform.position, targetPosition);
 
             if (distanceToTarget > _stopThreshold)
             {
-                // --- PHASE 1: MOVING BEHAVIOR ---
-
-                // Calculate move direction towards the target spot
+                // Calculate direction and set _moveDirection (like user input does)
                 Vector3 directionToTarget = (targetPosition - transform.position).normalized;
+                _moveDirection = new Vector2(directionToTarget.x, directionToTarget.z);
 
-                // Apply Position Movement
-                transform.position += directionToTarget * moveSpeed * deltaTime;
-
-                // Apply Rotation: Requirement says "look somewhat towards the tank"
-                // So we look at the Tank itself, NOT the empty spot behind it.
-                Vector3 directionToTank = (_tank.position - transform.position).normalized;
-
-                // Zero out Y to prevent looking up/down (keep brawler flat)
-                directionToTank.y = 0;
-
-                if (directionToTank != Vector3.zero)
-                {
-                    Quaternion lookRotation = Quaternion.LookRotation(directionToTank);
-                    transform.rotation = Quaternion.Slerp(transform.rotation, lookRotation, rotationSpeed * deltaTime);
-                }
+                // Use inherited ApplyMovement for consistency
+                ApplyMovement(transform, moveSpeed, rotationSpeed, deltaTime);
             }
             else
             {
-                // --- PHASE 2: REACHED BEHAVIOR ---
-
-                // Requirement: "rotate until it looks in the same direction as the tank"
-                // We simply Slerp towards the tank's rotation
+                // When reached, align rotation with tank
+                _moveDirection = Vector2.zero; // Stop moving
                 transform.rotation = Quaternion.Slerp(transform.rotation, _tank.rotation, rotationSpeed * deltaTime);
             }
         }
